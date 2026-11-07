@@ -2,120 +2,182 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Pulse — Music Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pulse — High-Fidelity Music Experience</title>
+  
+  <!-- Modern Typographic Pairing: Syne (Display) & Plus Jakarta Sans (Interface) & JetBrains Mono (Technical) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- Hidden real audio element for authentic playback -->
+  <audio id="audio-engine" preload="auto"></audio>
+
   <div class="app">
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
+    <!-- EDITORIAL SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="logo">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="#1DB954" stroke-width="2"/>
-            <path d="M8 12l4 4 4-4" stroke="#1DB954" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="brand-text">
-          <strong>Pulse</strong>
-          <small>music</small>
-        </div>
+        <a href="#home" class="logo-link">
+          <div class="logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M4 12h3l2-6 4 12 3-8 2 4h2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">Pulse</span>
+            <span class="brand-edition">Hi-Fi System</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Quick Search Bar inside Sidebar -->
+      <div class="sidebar-search">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" id="sidebar-search-input" placeholder="Search artists, tracks..." autocomplete="off" />
+        <span class="search-shortcut">/</span>
       </div>
 
       <nav class="nav">
-        <a class="nav-link active" href="#home" data-tooltip="Go to Home">
+        <span class="nav-caption">Navigation</span>
+        <a class="nav-link active" href="#home" data-tooltip="Home Feed">
           <span class="icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9.5z"/>
             </svg>
           </span>
-          Home
+          <span>Feed</span>
         </a>
-        <a class="nav-link" href="#search" data-tooltip="Search Music">
+        <a class="nav-link" href="#search" id="nav-search-btn" data-tooltip="Search Catalog">
           <span class="icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"/>
               <path d="m21 21-4.35-4.35"/>
             </svg>
           </span>
-          Search
+          <span>Explore</span>
         </a>
-        <a class="nav-link" href="#library" data-tooltip="Your Music Library">
+        <a class="nav-link" href="#library" id="nav-library-btn" data-tooltip="Curated Library">
           <span class="icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m16 6 4 14"/>
+              <path d="M12 6v14"/>
+              <path d="M8 8v12"/>
+              <path d="M4 4v16"/>
             </svg>
           </span>
-          Your Library
+          <span>Library</span>
         </a>
-        <a class="nav-link" href="#playlists" data-tooltip="Browse Playlists">
+        <a class="nav-link" href="#playlists" id="nav-playlists-btn" data-tooltip="Your Collections">
           <span class="icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 3h18v18H3zM12 8v8"/>
-              <path d="m8 12 4-4 4 4"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15V6"/>
+              <path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+              <path d="M12 12H3"/>
+              <path d="M16 6H3"/>
+              <path d="M12 18H3"/>
             </svg>
           </span>
-          Playlists
+          <span>Playlists</span>
         </a>
- </nav> 
+      </nav>
 
       <div class="playlist-section">
-        <div class="create-playlist">
-          <span class="icon">+</span>
-          Create Playlist
+        <div class="playlist-header">
+          <span class="nav-caption">Collections</span>
+          <button class="create-playlist" data-tooltip="New Playlist">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </button>
         </div>
         <div class="playlist-list">
-          <div class="playlist-item">
-            <span class="playlist-icon">🎵</span>
-            <span>Liked Songs</span>
+          <div class="playlist-item active" data-playlist="liked">
+            <span class="playlist-indicator"></span>
+            <span class="playlist-name">Liked Recordings</span>
+            <span class="playlist-count">24</span>
           </div>
-          <div class="playlist-item">
-            <span class="playlist-icon">🔥</span>
-            <span>Fire Hits</span>
+          <div class="playlist-item" data-playlist="synth">
+            <span class="playlist-indicator"></span>
+            <span class="playlist-name">Analog Nights</span>
+            <span class="playlist-count">18</span>
           </div>
-          <div class="playlist-item">
-            <span class="playlist-icon">🌙</span>
-            <span>Chill Vibes</span>
+          <div class="playlist-item" data-playlist="chill">
+            <span class="playlist-indicator"></span>
+            <span class="playlist-name">Acoustic Sessions</span>
+            <span class="playlist-count">32</span>
           </div>
-          <div class="playlist-item">
-            <span class="playlist-icon">⚡</span>
-            <span>Energy Boost</span>
+          <div class="playlist-item" data-playlist="focus">
+            <span class="playlist-indicator"></span>
+            <span class="playlist-name">Kinetic Waveform</span>
+            <span class="playlist-count">15</span>
           </div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR HARDWARE TELEMETRY BADGE -->
+      <div class="sidebar-telemetry">
+        <div class="telemetry-row">
+          <span class="telemetry-label">STREAM OUTPUT</span>
+          <span class="telemetry-val">FLAC 24-BIT</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="telemetry-label">SAMPLE RATE</span>
+          <span class="telemetry-val">96.0 kHz</span>
         </div>
       </div>
     </aside>
 
-    <!-- MAIN -->
+    <!-- MAIN SCROLL CONTAINER -->
     <main class="main" id="main-content">
-      <!-- HERO -->
-      <section class="hero" id="home">
-        <div class="hero-background"></div>
-        <div class="hero-slideshow">
-          <div class="slide active" data-slide="0">
-            <div class="slide-bg" style="background: linear-gradient(135deg, #1DB954, #2ecc71)"></div>
-          </div>
-          <div class="slide" data-slide="1">
-            <div class="slide-bg" style="background: linear-gradient(135deg, #e74c3c, #f39c12)"></div>
-          </div>
-          <div class="slide" data-slide="2">
-            <div class="slide-bg" style="background: linear-gradient(135deg, #9b59b6, #8e44ad)"></div>
-          </div>
-          <div class="slide" data-slide="3">
-            <div class="slide-bg" style="background: linear-gradient(135deg, #3498db, #2980b9)"></div>
-          </div>
-          <div class="slide" data-slide="4">
-            <div class="slide-bg" style="background: linear-gradient(135deg, #f1c40f, #f39c12)"></div>
-          </div>
+      
+      <!-- TOP STATUS / NAVIGATION APERTURE -->
+      <header class="top-nav">
+        <div class="top-nav-breadcrumbs">
+          <span class="breadcrumb-root">Soundstream</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-current" id="nav-location">Master Console</span>
         </div>
-        <div class="hero-content">
-          <div class="hero-left">
-            <div class="hero-badge">Featured Playlist</div>
+        <div class="top-nav-status">
+          <div class="live-status-dot"></div>
+          <span class="live-status-text">Audio Engine Online</span>
+        </div>
+      </header>
+
+      <!-- EDITORIAL HERO SECTION -->
+      <section class="hero" id="home">
+        <div class="hero-canvas-wrap">
+          <canvas id="hero-visualizer" width="1200" height="400"></canvas>
+        </div>
+
+        <div class="hero-slideshow" style="display: none;">
+          <!-- Kept for script data-compatibility -->
+          <div class="slide active" data-slide="0"><div class="slide-bg"></div></div>
+          <div class="slide" data-slide="1"><div class="slide-bg"></div></div>
+          <div class="slide" data-slide="2"><div class="slide-bg"></div></div>
+          <div class="slide" data-slide="3"><div class="slide-bg"></div></div>
+          <div class="slide" data-slide="4"><div class="slide-bg"></div></div>
+        </div>
+
+        <div class="hero-layout">
+          <div class="hero-narrative">
+            <div class="hero-meta">
+              <span class="hero-meta-kicker">Curated Release</span>
+              <span class="hero-meta-dot">•</span>
+              <span class="hero-meta-genre" id="hero-genre">Heavy Synthetics</span>
+              <span class="hero-meta-dot">•</span>
+              <span class="hero-meta-year" id="hero-year">2024 Master</span>
+            </div>
+
             <div class="hero-title-container">
               <h1 class="hero-title" id="hero-title">Neon Nights</h1>
-              <div class="title-slideshow">
+              <!-- Hidden compatibility slide elements -->
+              <div class="title-slideshow" style="display: none;">
                 <span class="title-slide active">Neon Nights</span>
                 <span class="title-slide">Electric Dreams</span>
                 <span class="title-slide">Midnight City</span>
@@ -123,445 +185,733 @@
                 <span class="title-slide">Cyber Pulse</span>
               </div>
             </div>
+
             <div class="hero-sub-container">
-              <p class="hero-sub" id="hero-subtitle">Curated beats, chill vibes and fresh releases. Tune in and unwind with the perfect soundtrack for your night.</p>
-              <div class="subtitle-slideshow">
-                <span class="subtitle-slide active">Curated beats, chill vibes and fresh releases. Tune in and unwind with the perfect soundtrack for your night.</span>
-                <span class="subtitle-slide">High-energy electronic music that will get you moving. Perfect for your workout or party playlist.</span>
-                <span class="subtitle-slide">Urban beats and city sounds that capture the essence of modern life. From dawn to dusk.</span>
-                <span class="subtitle-slide">Retro-futuristic sounds that transport you to another dimension. A journey through time and space.</span>
-                <span class="subtitle-slide">Cutting-edge electronic music that pushes boundaries. Experience the future of sound today.</span>
+              <p class="hero-sub" id="hero-subtitle">
+                A pristine collection of textured analog synthesizers and rhythmic percussion, mastered for reference acoustics and spatial depth.
+              </p>
+              <div class="subtitle-slideshow" style="display: none;">
+                <span class="subtitle-slide active">A pristine collection of textured analog synthesizers and rhythmic percussion.</span>
+                <span class="subtitle-slide">High-energy kinetic rhythms engineered for dynamic acoustic depth.</span>
+                <span class="subtitle-slide">Atmospheric twilight instrumentation recorded live on modular systems.</span>
+                <span class="subtitle-slide">Warm vintage tape saturation combined with futuristic soundscapes.</span>
+                <span class="subtitle-slide">Progressive low-frequency pulses driving deep rhythmic tension.</span>
               </div>
             </div>
+
             <div class="hero-actions">
-              <button id="hero-play" class="btn primary">
-                <span class="btn-icon">▶</span>
-                Play
+              <button id="hero-play" class="btn btn-primary" aria-label="Play Featured Album">
+                <span class="btn-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </span>
+                <span class="btn-text">Start Playback</span>
               </button>
-              <button id="hero-save" class="btn ghost">
-                <span class="btn-icon">♡</span>
-                Save
+
+              <button id="hero-save" class="btn btn-secondary" aria-label="Save to Library">
+                <span class="btn-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
+                  </svg>
+                </span>
+                <span class="btn-text">Add to Queue</span>
               </button>
-              <button id="hero-more" class="btn ghost">
-                <span class="btn-icon">⋯</span>
+
+              <button id="hero-more" class="btn btn-icon-only" aria-label="More Options">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="5" cy="12" r="2"/>
+                  <circle cx="12" cy="12" r="2"/>
+                  <circle cx="19" cy="12" r="2"/>
+                </svg>
               </button>
             </div>
-            <div class="hero-indicators">
-              <span class="indicator active" data-slide="0"></span>
-              <span class="indicator" data-slide="1"></span>
-              <span class="indicator" data-slide="2"></span>
-              <span class="indicator" data-slide="3"></span>
-              <span class="indicator" data-slide="4"></span>
+
+            <!-- Slide Controller -->
+            <div class="hero-slide-nav">
+              <span class="slide-counter"><span id="slide-curr-num">01</span> / 05</span>
+              <div class="hero-indicators">
+                <button class="indicator active" data-slide="0" aria-label="Slide 1"></button>
+                <button class="indicator" data-slide="1" aria-label="Slide 2"></button>
+                <button class="indicator" data-slide="2" aria-label="Slide 3"></button>
+                <button class="indicator" data-slide="3" aria-label="Slide 4"></button>
+                <button class="indicator" data-slide="4" aria-label="Slide 5"></button>
+              </div>
             </div>
           </div>
-        <div class="hero-art">
-          <div class="art-card">
-            <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=600&fit=crop&crop=center" alt="Featured" id="hero-artwork" />
-            <div class="art-overlay"></div>
-            <div class="art-glow"></div>
+
+          <!-- Physical Vinyl / Sleeve Presentation -->
+          <div class="hero-art-showcase">
+            <div class="vinyl-record-wrap" id="vinyl-wrap">
+              <div class="vinyl-disc" id="vinyl-disc">
+                <div class="vinyl-groove"></div>
+                <div class="vinyl-label">
+                  <span class="vinyl-text">PULSE</span>
+                </div>
+              </div>
+              <div class="art-card">
+                <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=800&fit=crop&crop=center" alt="Featured Album Art" id="hero-artwork" />
+                <div class="art-frame-highlight"></div>
+              </div>
+            </div>
           </div>
-        </div>
         </div>
       </section>
 
-      <!-- CAROUSELS -->
+      <!-- SEARCH / FILTER LIVE RESULTS (Hidden by default, shown on search) -->
+      <section class="section search-results-section" id="search-section" style="display: none;">
+        <div class="section-header">
+          <div class="section-header-title">
+            <h2 id="search-query-heading">Search Results</h2>
+            <p class="section-subtitle">Real-time index across albums, artists, and sound recordings</p>
+          </div>
+        </div>
+        <div class="cards-grid" id="search-results-grid"></div>
+      </section>
+
+      <!-- CAROUSEL 1: RECENTLY PLAYED -->
       <section class="section reveal" id="recently-played">
         <div class="section-header">
-          <h2>Recently Played</h2>
-          <button class="section-more">Show all</button>
+          <div class="section-header-title">
+            <h2>Recently Played</h2>
+            <p class="section-subtitle">Pick up right where your session left off</p>
+          </div>
+          <div class="section-nav-actions">
+            <button class="carousel-nav-btn prev" data-target="recently-played-carousel" aria-label="Previous">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <button class="carousel-nav-btn next" data-target="recently-played-carousel" aria-label="Next">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+            <button class="section-more">View all</button>
+          </div>
         </div>
-        <div class="carousel" data-snap>
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop&crop=center" alt="Midnight Drive Album" />
-              <button class="play-overlay">▶</button>
+
+        <div class="carousel" id="recently-played-carousel" data-snap>
+          <article class="card" data-track-index="0" data-src="music1.mp3">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&h=500&fit=crop&crop=center" alt="Midnight Drive" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Midnight Drive">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">LOSSLESS</div>
             </div>
             <div class="card-info">
-              <strong>Midnight Drive</strong>
-              <small>Various Artists</small>
+              <strong class="card-title">Midnight Drive</strong>
+              <span class="card-artist">Various Artists</span>
+              <span class="card-meta">Electronic • 3:24</span>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=300&h=300&fit=crop&crop=center" alt="Lo-Fi Mornings Album" />
-              <button class="play-overlay">▶</button>
+          <article class="card" data-track-index="1" data-src="music2.mp3">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=500&h=500&fit=crop&crop=center" alt="Lo-Fi Mornings" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Lo-Fi Mornings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">ANALOG</div>
             </div>
             <div class="card-info">
-              <strong>Lo-Fi Mornings</strong>
-              <small>Beat Collective</small>
+              <strong class="card-title">Lo-Fi Mornings</strong>
+              <span class="card-artist">Beat Collective</span>
+              <span class="card-meta">Downtempo • 3:00</span>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop&crop=center" alt="Synthwave 88 Album" />
-              <button class="play-overlay">▶</button>
+          <article class="card" data-track-index="2" data-src="music3.mp3">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop&crop=center" alt="Synthwave 88" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Synthwave 88">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">96k / 24-BIT</div>
             </div>
             <div class="card-info">
-              <strong>Synthwave 88</strong>
-              <small>Neon Nights</small>
+              <strong class="card-title">Synthwave 88</strong>
+              <span class="card-artist">Neon Nights</span>
+              <span class="card-meta">Retro Wave • 3:40</span>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300&h=300&fit=crop&crop=center" alt="Acoustic Chill Album" />
-              <button class="play-overlay">▶</button>
+          <article class="card" data-track-index="3" data-src="music4.mp3">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=500&h=500&fit=crop&crop=center" alt="Acoustic Chill" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Acoustic Chill">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">STUDIO</div>
             </div>
             <div class="card-info">
-              <strong>Acoustic Chill</strong>
-              <small>Solo Artist</small>
+              <strong class="card-title">Acoustic Chill</strong>
+              <span class="card-artist">Solo Artist</span>
+              <span class="card-meta">Acoustic • 3:15</span>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop&crop=center" alt="Future Bass Album" />
-              <button class="play-overlay">▶</button>
+          <article class="card" data-track-index="4" data-src="music1.mp3">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&h=500&fit=crop&crop=center" alt="Future Bass" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Future Bass">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">LOSSLESS</div>
             </div>
             <div class="card-info">
-              <strong>Future Bass</strong>
-              <small>Electro Lab</small>
+              <strong class="card-title">Future Bass</strong>
+              <span class="card-artist">Electro Lab</span>
+              <span class="card-meta">Electronic • 2:48</span>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop&crop=center" alt="Ambient Dreams Album" />
-              <button class="play-overlay">▶</button>
+          <article class="card" data-track-index="3" data-src="music4.mp3">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1445985543470-41fdd5c31447?w=500&h=500&fit=crop&crop=center" alt="Ambient Dreams" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Ambient Dreams">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">SPATIAL</div>
             </div>
             <div class="card-info">
-              <strong>Ambient Dreams</strong>
-              <small>Space Waves</small>
+              <strong class="card-title">Ambient Dreams</strong>
+              <span class="card-artist">Space Waves</span>
+              <span class="card-meta">Atmospheric • 3:15</span>
             </div>
           </article>
         </div>
       </section>
 
+      <!-- CAROUSEL 2: TOP ARTISTS -->
       <section class="section reveal" id="top-artists">
         <div class="section-header">
-          <h2>Top Artists</h2>
-          <button class="section-more">Show all</button>
+          <div class="section-header-title">
+            <h2>Featured Artists</h2>
+            <p class="section-subtitle">Leading voices sculpting the soundscape</p>
+          </div>
+          <div class="section-nav-actions">
+            <button class="carousel-nav-btn prev" data-target="top-artists-carousel" aria-label="Previous">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <button class="carousel-nav-btn next" data-target="top-artists-carousel" aria-label="Next">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+            <button class="section-more">View all</button>
+          </div>
         </div>
-        <div class="carousel" data-snap>
-          <article class="card artist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300&h=300&fit=crop&crop=face" alt="Riya Beats" />
-              <button class="play-overlay">▶</button>
+
+        <div class="carousel" id="top-artists-carousel" data-snap>
+          <article class="card artist" data-track-index="0">
+            <div class="card-image-wrap artist-frame">
+              <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=500&h=500&fit=crop&crop=face" alt="Riya Beats" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Riya Beats">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
             </div>
-            <div class="card-info">
-              <strong>Riya Beats</strong>
-              <small>Pop • 2.4M followers</small>
+            <div class="card-info artist-info">
+              <strong class="card-title">Riya Beats</strong>
+              <span class="card-artist">Electronic & Indie Pop</span>
+              <span class="card-meta">2.4M Listeners</span>
             </div>
           </article>
 
-          <article class="card artist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face" alt="DJ Pulse" />
-              <button class="play-overlay">▶</button>
+          <article class="card artist" data-track-index="1">
+            <div class="card-image-wrap artist-frame">
+              <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=500&h=500&fit=crop&crop=face" alt="DJ Pulse" loading="lazy" />
+              <button class="play-overlay" aria-label="Play DJ Pulse">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
             </div>
-            <div class="card-info">
-              <strong>DJ Pulse</strong>
-              <small>EDM • 1.1M followers</small>
-            </div>
-          </article>
-
-          <article class="card artist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face" alt="Solar Wind" />
-              <button class="play-overlay">▶</button>
-            </div>
-            <div class="card-info">
-              <strong>Solar Wind</strong>
-              <small>Indie • 860k followers</small>
+            <div class="card-info artist-info">
+              <strong class="card-title">DJ Pulse</strong>
+              <span class="card-artist">Modular Techno</span>
+              <span class="card-meta">1.1M Listeners</span>
             </div>
           </article>
 
-          <article class="card artist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&h=300&fit=crop&crop=face" alt="Neon Eve" />
-              <button class="play-overlay">▶</button>
+          <article class="card artist" data-track-index="2">
+            <div class="card-image-wrap artist-frame">
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&h=500&fit=crop&crop=face" alt="Solar Wind" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Solar Wind">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
             </div>
-            <div class="card-info">
-              <strong>Neon Eve</strong>
-              <small>Chill • 730k followers</small>
+            <div class="card-info artist-info">
+              <strong class="card-title">Solar Wind</strong>
+              <span class="card-artist">Cinematic Post-Rock</span>
+              <span class="card-meta">860k Listeners</span>
             </div>
           </article>
 
-          <article class="card artist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop&crop=face" alt="Flow Master" />
-              <button class="play-overlay">▶</button>
+          <article class="card artist" data-track-index="3">
+            <div class="card-image-wrap artist-frame">
+              <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=500&h=500&fit=crop&crop=face" alt="Neon Eve" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Neon Eve">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
             </div>
-            <div class="card-info">
-              <strong>Flow Master</strong>
-              <small>Hip-Hop • 1.8M followers</small>
+            <div class="card-info artist-info">
+              <strong class="card-title">Neon Eve</strong>
+              <span class="card-artist">Ambient Soul</span>
+              <span class="card-meta">730k Listeners</span>
+            </div>
+          </article>
+
+          <article class="card artist" data-track-index="4">
+            <div class="card-image-wrap artist-frame">
+              <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&h=500&fit=crop&crop=face" alt="Flow Master" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Flow Master">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="card-info artist-info">
+              <strong class="card-title">Flow Master</strong>
+              <span class="card-artist">Hip-Hop & Beats</span>
+              <span class="card-meta">1.8M Listeners</span>
             </div>
           </article>
         </div>
       </section>
 
+      <!-- CAROUSEL 3: MADE FOR YOU -->
       <section class="section reveal" id="made-for-you">
         <div class="section-header">
-          <h2>Made for You</h2>
-          <button class="section-more">Show all</button>
+          <div class="section-header-title">
+            <h2>Curated Collections</h2>
+            <p class="section-subtitle">Acoustic selections tuned to your listening tendencies</p>
+          </div>
+          <div class="section-nav-actions">
+            <button class="carousel-nav-btn prev" data-target="made-for-you-carousel" aria-label="Previous">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <button class="carousel-nav-btn next" data-target="made-for-you-carousel" aria-label="Next">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+            <button class="section-more">View all</button>
+          </div>
         </div>
-        <div class="carousel" data-snap>
-          <article class="card playlist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop&crop=center" alt="Daily Mix 1" />
-              <button class="play-overlay">▶</button>
+
+        <div class="carousel" id="made-for-you-carousel" data-snap>
+          <article class="card playlist" data-track-index="0">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&h=500&fit=crop&crop=center" alt="Analog Mix" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Analog Mix">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">DAILY CURATION</div>
             </div>
             <div class="card-info">
-              <strong>Daily Mix 1</strong>
-              <small>Made for you</small>
+              <strong class="card-title">Daily Mix 1</strong>
+              <span class="card-artist">Pulse Editorial</span>
+              <span class="card-meta">50 Tracks • Updated Today</span>
             </div>
           </article>
 
-          <article class="card playlist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=300&h=300&fit=crop&crop=center" alt="Discover Weekly" />
-              <button class="play-overlay">▶</button>
+          <article class="card playlist" data-track-index="1">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&h=500&fit=crop&crop=center" alt="Discover Weekly" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Discover Weekly">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">DISCOVERY</div>
             </div>
             <div class="card-info">
-              <strong>Discover Weekly</strong>
-              <small>Your weekly mixtape</small>
+              <strong class="card-title">Discover Weekly</strong>
+              <span class="card-artist">Fresh Underground</span>
+              <span class="card-meta">30 Tracks • Refreshed Mondays</span>
             </div>
           </article>
 
-          <article class="card playlist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop&crop=center" alt="Release Radar" />
-              <button class="play-overlay">▶</button>
+          <article class="card playlist" data-track-index="2">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=500&h=500&fit=crop&crop=center" alt="Release Radar" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Release Radar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">RADAR</div>
             </div>
             <div class="card-info">
-              <strong>Release Radar</strong>
-              <small>Catch all the latest from artists you love</small>
+              <strong class="card-title">Release Radar</strong>
+              <span class="card-artist">New From Followed</span>
+              <span class="card-meta">New Tracks • Friday Drop</span>
             </div>
           </article>
 
-          <article class="card playlist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300&h=300&fit=crop&crop=center" alt="Time Capsule" />
-              <button class="play-overlay">▶</button>
+          <article class="card playlist" data-track-index="3">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=500&h=500&fit=crop&crop=center" alt="Deep Focus" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Deep Focus">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">FOCUS</div>
             </div>
             <div class="card-info">
-              <strong>Time Capsule</strong>
-              <small>Your musical memories</small>
+              <strong class="card-title">Focus Flow</strong>
+              <span class="card-artist">Instrumental Waves</span>
+              <span class="card-meta">Minimalist • Binaural</span>
             </div>
           </article>
 
-          <article class="card playlist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop&crop=center" alt="Chill Hits" />
-              <button class="play-overlay">▶</button>
+          <article class="card playlist" data-track-index="4">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=500&h=500&fit=crop&crop=center" alt="Twilight Chill" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Twilight Chill">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">CHILL</div>
             </div>
             <div class="card-info">
-              <strong>Chill Hits</strong>
-              <small>Relaxing beats for your day</small>
-            </div>
-          </article>
-
-          <article class="card playlist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=300&h=300&fit=crop&crop=center" alt="Workout Mix" />
-              <button class="play-overlay">▶</button>
-            </div>
-            <div class="card-info">
-              <strong>Workout Mix</strong>
-              <small>High-energy tracks to keep you moving</small>
-            </div>
-          </article>
-
-          <article class="card playlist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop&crop=center" alt="Focus Flow" />
-              <button class="play-overlay">▶</button>
-            </div>
-            <div class="card-info">
-              <strong>Focus Flow</strong>
-              <small>Concentration-friendly instrumentals</small>
-            </div>
-          </article>
-
-          <article class="card playlist">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300&h=300&fit=crop&crop=center" alt="Party Anthems" />
-              <button class="play-overlay">▶</button>
-            </div>
-            <div class="card-info">
-              <strong>Party Anthems</strong>
-              <small>Get the party started</small>
+              <strong class="card-title">Chill Hits</strong>
+              <span class="card-artist">Velvet Sounds</span>
+              <span class="card-meta">Low Fidelity • Warmth</span>
             </div>
           </article>
         </div>
       </section>
 
+      <!-- CAROUSEL 4: NEW RELEASES -->
       <section class="section reveal" id="new-releases">
         <div class="section-header">
-          <h2>New Releases</h2>
-          <button class="section-more">Show all</button>
+          <div class="section-header-title">
+            <h2>New Releases</h2>
+            <p class="section-subtitle">Fresh studio drops and newly remastered recordings</p>
+          </div>
+          <div class="section-nav-actions">
+            <button class="carousel-nav-btn prev" data-target="new-releases-carousel" aria-label="Previous">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <button class="carousel-nav-btn next" data-target="new-releases-carousel" aria-label="Next">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+            <button class="section-more">View all</button>
+          </div>
         </div>
-        <div class="carousel" data-snap>
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300&h=300&fit=crop&crop=center" alt="New Album 1" />
-              <button class="play-overlay">▶</button>
+
+        <div class="carousel" id="new-releases-carousel" data-snap>
+          <article class="card" data-track-index="1">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=500&h=500&fit=crop&crop=center" alt="Electric Dreams" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Electric Dreams">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">NEW</div>
             </div>
             <div class="card-info">
-              <strong>Electric Dreams</strong>
-              <small>Cyber Wave • 2024</small>
+              <strong class="card-title">Electric Dreams</strong>
+              <span class="card-artist">Cyber Wave</span>
+              <span class="card-meta">LP Album • 2024</span>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=300&h=300&fit=crop&crop=center" alt="New Album 2" />
-              <button class="play-overlay">▶</button>
+          <article class="card" data-track-index="2">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=500&h=500&fit=crop&crop=center" alt="Urban Vibes" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Urban Vibes">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">NEW</div>
             </div>
             <div class="card-info">
-              <strong>Urban Vibes</strong>
-              <small>City Sound • 2024</small>
+              <strong class="card-title">Urban Vibes</strong>
+              <span class="card-artist">City Sound</span>
+              <span class="card-meta">EP • 2024</span>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop&crop=center" alt="New Album 3" />
-              <button class="play-overlay">▶</button>
+          <article class="card" data-track-index="3">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop&crop=center" alt="Digital Sunset" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Digital Sunset">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">NEW</div>
             </div>
             <div class="card-info">
-              <strong>Digital Sunset</strong>
-              <small>Retro Future • 2024</small>
+              <strong class="card-title">Digital Sunset</strong>
+              <span class="card-artist">Retro Future</span>
+              <span class="card-meta">Single • 2024</span>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop&crop=center" alt="New Album 4" />
-              <button class="play-overlay">▶</button>
+          <article class="card" data-track-index="0">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&h=500&fit=crop&crop=center" alt="Neon Nights" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Neon Nights">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">REMASTER</div>
             </div>
             <div class="card-info">
-              <strong>Neon Nights</strong>
-              <small>Synth Collective • 2024</small>
-            </div>
-          </article>
-
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300&h=300&fit=crop&crop=center" alt="New Album 5" />
-              <button class="play-overlay">▶</button>
-            </div>
-            <div class="card-info">
-              <strong>Midnight City</strong>
-              <small>Urban Beats • 2024</small>
+              <strong class="card-title">Neon Nights</strong>
+              <span class="card-artist">Synth Collective</span>
+              <span class="card-meta">Remaster • 2024</span>
             </div>
           </article>
         </div>
       </section>
 
+      <!-- CAROUSEL 5: TRENDING NOW -->
       <section class="section reveal" id="trending">
         <div class="section-header">
-          <h2>Trending Now</h2>
-          <button class="section-more">Show all</button>
+          <div class="section-header-title">
+            <h2>Trending Worldwide</h2>
+            <p class="section-subtitle">The most streamed recordings across the network</p>
+          </div>
+          <div class="section-nav-actions">
+            <button class="carousel-nav-btn prev" data-target="trending-carousel" aria-label="Previous">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <button class="carousel-nav-btn next" data-target="trending-carousel" aria-label="Next">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+            <button class="section-more">View all</button>
+          </div>
         </div>
-        <div class="carousel" data-snap>
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop&crop=center" alt="Trending 1" />
-              <button class="play-overlay">▶</button>
+
+        <div class="carousel" id="trending-carousel" data-snap>
+          <article class="card" data-track-index="2">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&h=500&fit=crop&crop=center" alt="Viral Hit" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Viral Hit">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">TOP 10</div>
             </div>
             <div class="card-info">
-              <strong>Viral Hit</strong>
-              <small>Popular Track • Trending</small>
+              <strong class="card-title">Viral Hit</strong>
+              <span class="card-artist">Popular Track</span>
+              <span class="card-meta">Global Chart #1</span>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=300&h=300&fit=crop&crop=center" alt="Trending 2" />
-              <button class="play-overlay">▶</button>
+          <article class="card" data-track-index="3">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=500&h=500&fit=crop&crop=center" alt="Chart Topper" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Chart Topper">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">TOP 50</div>
             </div>
             <div class="card-info">
-              <strong>Chart Topper</strong>
-              <small>Top 40 • Trending</small>
+              <strong class="card-title">Chart Topper</strong>
+              <span class="card-artist">Top 40</span>
+              <span class="card-meta">Global Chart #4</span>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop&crop=center" alt="Trending 3" />
-              <button class="play-overlay">▶</button>
+          <article class="card" data-track-index="0">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=500&fit=crop&crop=center" alt="Global Sensation" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Global Sensation">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">VIRAL</div>
             </div>
             <div class="card-info">
-              <strong>Global Sensation</strong>
-              <small>Worldwide Hit • Trending</small>
+              <strong class="card-title">Global Sensation</strong>
+              <span class="card-artist">Worldwide Hit</span>
+              <span class="card-meta">Global Chart #7</span>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-image">
-              <img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300&h=300&fit=crop&crop=center" alt="Trending 4" />
-              <button class="play-overlay">▶</button>
+          <article class="card" data-track-index="1">
+            <div class="card-image-wrap">
+              <img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=500&h=500&fit=crop&crop=center" alt="Breakout Song" loading="lazy" />
+              <button class="play-overlay" aria-label="Play Breakout Song">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              <div class="card-audio-badge">RISING</div>
             </div>
             <div class="card-info">
-              <strong>Breakout Song</strong>
-              <small>Rising Star • Trending</small>
+              <strong class="card-title">Breakout Song</strong>
+              <span class="card-artist">Rising Star</span>
+              <span class="card-meta">Velocity +45%</span>
             </div>
           </article>
         </div>
       </section>
 
-      <!-- spacer to allow player above -->
-      <div class="spacer" style="height: 90px;"></div>
+      <!-- EDITORIAL ARCHITECTURAL FOOTER -->
+      <footer class="editorial-footer">
+        <div class="footer-grid">
+          <div class="footer-col brand-col">
+            <div class="footer-logo">
+              <span class="footer-brand-title">Pulse</span>
+              <span class="footer-brand-edition">Acoustic Audio Systems</span>
+            </div>
+            <p class="footer-desc">
+              Engineered for uncompromising high-resolution playback. Designed with intentional restraint, physical precision, and tactile responsiveness.
+            </p>
+            <div class="footer-telemetry">
+              <span class="telemetry-pill">Lossless 24-Bit / 96kHz</span>
+              <span class="telemetry-pill">Web Audio DSP Active</span>
+            </div>
+          </div>
+
+          <div class="footer-col">
+            <span class="footer-col-title">Navigation</span>
+            <ul class="footer-links">
+              <li><a href="#home">Master Feed</a></li>
+              <li><a href="#search">Catalog Search</a></li>
+              <li><a href="#recently-played">Recent Sessions</a></li>
+              <li><a href="#top-artists">Featured Artists</a></li>
+              <li><a href="#made-for-you">Curated Mixes</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <span class="footer-col-title">Keyboard Commands</span>
+            <div class="shortcut-list">
+              <div class="shortcut-row">
+                <span class="shortcut-key">Space</span>
+                <span class="shortcut-action">Play / Pause</span>
+              </div>
+              <div class="shortcut-row">
+                <span class="shortcut-key">← / →</span>
+                <span class="shortcut-action">Seek Previous / Next</span>
+              </div>
+              <div class="shortcut-row">
+                <span class="shortcut-key">↑ / ↓</span>
+                <span class="shortcut-action">Volume Level</span>
+              </div>
+              <div class="shortcut-row">
+                <span class="shortcut-key">/</span>
+                <span class="shortcut-action">Focus Search</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <span class="footer-copyright">© Pulse High-Fidelity Audio Architecture. All rights reserved.</span>
+          <span class="footer-status">Bit-Perfect Signal Flow • Latency 12ms</span>
+        </div>
+      </footer>
+
+      <!-- Spacer for bottom floating player -->
+      <div class="spacer" style="height: 120px;"></div>
     </main>
 
-    <!-- BOTTOM PLAYER -->
+    <!-- HARDWARE-INSPIRED BOTTOM PLAYER DOCK -->
     <div class="player" aria-hidden="false">
+      <!-- Player Left: Track Details -->
       <div class="player-left">
-        <div class="player-art">
-          <img id="player-art" src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=60&h=60&fit=crop&crop=center" alt="art" />
+        <div class="player-art-wrap">
+          <img id="player-art" src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=120&h=120&fit=crop&crop=center" alt="Track Art" />
           <div class="player-art-overlay"></div>
+          <div class="playing-equalizer-bars" id="mini-equalizer">
+            <span></span><span></span><span></span><span></span>
+          </div>
         </div>
         <div class="track-info">
-          <div id="track-title">Midnight Drive</div>
-          <div id="track-artist">Various Artists</div>
+          <div id="track-title" class="track-title">Midnight Drive</div>
+          <div id="track-artist" class="track-artist">Various Artists</div>
         </div>
-        <button class="player-like" data-tooltip="Like This Song">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="player-like" aria-label="Save to Favourites" data-tooltip="Like Recording">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
           </svg>
         </button>
       </div>
 
+      <!-- Player Center: Transport Controls & Scrubber -->
       <div class="player-center">
         <div class="controls">
-          <button id="shuffle" class="ctrl" data-tooltip="Shuffle Playback">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button id="shuffle" class="ctrl" aria-label="Shuffle" data-tooltip="Shuffle Playback">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7"/>
               <path d="m3 16 5-5 5 5M21 8l-5 5-5-5"/>
             </svg>
           </button>
-          <button id="prev" class="ctrl" data-tooltip="Previous Track">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          
+          <button id="prev" class="ctrl" aria-label="Previous Track" data-tooltip="Previous (←)">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 20 9 12l10-8v16Z"/>
               <path d="M5 19V5"/>
             </svg>
           </button>
-          <button id="play" class="ctrl big" data-tooltip="Play/Pause">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          
+          <button id="play" class="ctrl big" aria-label="Play/Pause" data-tooltip="Play / Pause (Space)">
+            <svg id="play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z"/>
             </svg>
           </button>
-          <button id="next" class="ctrl" data-tooltip="Next Track">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          
+          <button id="next" class="ctrl" aria-label="Next Track" data-tooltip="Next (→)">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M5 4v16l10-8L5 4Z"/>
               <path d="M19 5v14"/>
             </svg>
           </button>
-          <button id="repeat" class="ctrl" data-tooltip="Repeat Track/Playlist">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          
+          <button id="repeat" class="ctrl" aria-label="Repeat Track" data-tooltip="Loop Playback">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="m17 1 4 4-4 4"/>
               <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
               <path d="m7 23-4-4 4-4"/>
@@ -571,46 +921,50 @@
         </div>
 
         <div class="progress-wrap">
-          <span id="time-elapsed">0:00</span>
-          <div class="progress-bar" id="progress-bar">
+          <span id="time-elapsed" class="mono-time">0:00</span>
+          <div class="progress-bar" id="progress-bar" role="slider" aria-label="Progress bar">
+            <div class="progress-track-bg"></div>
             <div class="progress" id="progress"></div>
             <div class="progress-handle" id="progress-handle"></div>
+            <div class="progress-hover-time" id="progress-hover-time">0:00</div>
           </div>
-          <span id="duration">3:24</span>
+          <span id="duration" class="mono-time">3:24</span>
         </div>
-    </div>
+      </div>
 
+      <!-- Player Right: System Controls -->
       <div class="player-right">
         <div class="volume-control">
-          <button class="volume-btn" data-tooltip="Mute/Unmute">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button class="volume-btn" aria-label="Mute" data-tooltip="Mute / Unmute">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 5 6 9H2v6h4l5 4V5Z"/>
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
             </svg>
           </button>
-          <input id="volume" type="range" min="0" max="1" step="0.01" value="0.7" data-tooltip="Volume Control" />
+          <div class="volume-slider-wrap">
+            <input id="volume" type="range" min="0" max="1" step="0.01" value="0.7" aria-label="Volume Level" data-tooltip="Volume" />
+          </div>
         </div>
-        <button class="queue-btn" data-tooltip="View Queue">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12h18"/>
-            <path d="M3 6h18"/>
-            <path d="M3 18h18"/>
+
+        <button class="queue-btn" aria-label="Queue Drawer" data-tooltip="Listening Queue">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
           </svg>
         </button>
-        <button class="device-btn" data-tooltip="Connect Device">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+        <button class="device-btn" aria-label="Audio Devices" data-tooltip="Output Device">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="2" y="4" width="20" height="16" rx="2"/>
             <path d="m22 7-10 5L2 7"/>
           </svg>
         </button>
       </div>
- </div>
+    </div>
 
-    <!-- FLOATING NOW PLAYING -->
+    <!-- FLOATING COMPACT SOUND DISK (DOCKS ON SCROLL) -->
     <div class="floating-player" id="floating-player">
       <div class="floating-art">
-        <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=40&h=40&fit=crop&crop=center" alt="art" />
-        <div class="floating-art-overlay"></div>
+        <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=60&h=60&fit=crop&crop=center" alt="Now Playing Art" />
       </div>
       <div class="floating-info">
         <div class="floating-title">Midnight Drive</div>
@@ -622,9 +976,10 @@
     </div>
   </div>
 
-  <!-- TOOLTIP CONTAINER -->
+  <!-- HOVER TOOLTIP -->
   <div id="tooltip" class="tooltip"></div>
 
- <script src="script.js"></script>  
+  <!-- APPLICATION SCRIPTS -->
+  <script src="script.js"></script>
 </body>
 </html>
