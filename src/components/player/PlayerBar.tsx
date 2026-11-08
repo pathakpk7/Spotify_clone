@@ -1,0 +1,325 @@
+import React, { useState, useRef } from 'react';
+import { 
+  Play, 
+  Pause, 
+  SkipBack, 
+  SkipForward, 
+  Shuffle, 
+  Repeat, 
+  Volume2, 
+  VolumeX, 
+  Sliders, 
+  Mic2, 
+  ListMusic, 
+  Heart,
+  Eye,
+  Gauge
+} from 'lucide-react';
+import { Track, VisualizerMode } from '../../types/music';
+
+interface PlayerBarProps {
+  currentTrack: Track;
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  volume: number;
+  isShuffled: boolean;
+  isRepeating: boolean;
+  playbackRate: number;
+  visualizerMode: VisualizerMode;
+  queueLength: number;
+  onTogglePlay: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onSeek: (time: number) => void;
+  onVolumeChange: (vol: number) => void;
+  onToggleShuffle: () => void;
+  onToggleRepeat: () => void;
+  onCyclePlaybackRate: () => void;
+  onCycleVisualizerMode: () => void;
+  onToggleLike: (trackId: string) => void;
+  onOpenEQ: () => void;
+  onOpenLyrics: () => void;
+  onOpenQueue: () => void;
+}
+
+export const PlayerBar: React.FC<PlayerBarProps> = ({
+  currentTrack,
+  isPlaying,
+  currentTime,
+  duration,
+  volume,
+  isShuffled,
+  isRepeating,
+  playbackRate,
+  visualizerMode,
+  queueLength,
+  onTogglePlay,
+  onPrev,
+  onNext,
+  onSeek,
+  onVolumeChange,
+  onToggleShuffle,
+  onToggleRepeat,
+  onCyclePlaybackRate,
+  onCycleVisualizerMode,
+  onToggleLike,
+  onOpenEQ,
+  onOpenLyrics,
+  onOpenQueue
+}) => {
+  const [hoverSeekTime, setHoverSeekTime] = useState<number | null>(null);
+  const [hoverPercent, setHoverPercent] = useState<number>(0);
+  const [lastVolume, setLastVolume] = useState<number>(0.7);
+  const progressBarRef = useRef<HTMLDivElement | null>(null);
+
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressBarRef.current) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, clickX / rect.width));
+    onSeek(pct * (duration || currentTrack.duration));
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressBarRef.current) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const moveX = e.clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, moveX / rect.width));
+    setHoverPercent(pct * 100);
+    setHoverSeekTime(pct * (duration || currentTrack.duration));
+  };
+
+  const handleMouseLeave = () => {
+    setHoverSeekTime(null);
+  };
+
+  const toggleMute = () => {
+    if (volume > 0) {
+      setLastVolume(volume);
+      onVolumeChange(0);
+    } else {
+      onVolumeChange(lastVolume || 0.7);
+    }
+  };
+
+  const currentPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <footer className="fixed bottom-0 left-0 right-0 h-24 bg-[#0d0f13]/95 backdrop-blur-2xl border-t border-white/10 px-6 md:px-8 z-40 flex items-center justify-between">
+      {/* LEFT: Track Info & Artwork */}
+      <div className="flex items-center gap-4 min-w-0 w-1/4 max-w-xs">
+        <div className="relative w-14 h-14 rounded overflow-hidden bg-black shrink-0 border border-white/10 shadow-lg group">
+          <img
+            src={currentTrack.art}
+            alt={currentTrack.title}
+            className="w-full h-full object-cover"
+          />
+
+          {/* Equalizer Wavelet Bar Overlay */}
+          {isPlaying && (
+            <div className="absolute inset-0 bg-black/40 flex items-end justify-center gap-1 p-2">
+              <span className="w-1 bg-signal-green rounded-full animate-eq-1" />
+              <span className="w-1 bg-signal-green rounded-full animate-eq-2" />
+              <span className="w-1 bg-signal-green rounded-full animate-eq-3" />
+              <span className="w-1 bg-signal-green rounded-full animate-eq-4" />
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex flex-col justify-center">
+          <h4 className="text-sm font-semibold text-white truncate hover:underline cursor-pointer">
+            {currentTrack.title}
+          </h4>
+          <p className="text-xs text-zinc-400 truncate font-body">
+            {currentTrack.artist}
+          </p>
+          <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider">
+            {currentTrack.qualityBadge || 'LOSSLESS'}
+          </span>
+        </div>
+
+        <button
+          onClick={() => onToggleLike(currentTrack.id)}
+          className="text-zinc-500 hover:text-red-500 transition-colors shrink-0 ml-1"
+        >
+          <Heart
+            size={18}
+            fill={currentTrack.isLiked ? '#ef4444' : 'none'}
+            className={currentTrack.isLiked ? 'text-red-500' : ''}
+          />
+        </button>
+      </div>
+
+      {/* CENTER: Transport Controls & Precision Scrubber */}
+      <div className="flex flex-col items-center max-w-2xl w-full mx-4">
+        {/* Buttons */}
+        <div className="flex items-center gap-6 mb-2">
+          <button
+            onClick={onToggleShuffle}
+            className={`transition-colors ${isShuffled ? 'text-signal-green' : 'text-zinc-400 hover:text-white'}`}
+            title="Shuffle Playback"
+          >
+            <Shuffle size={16} />
+          </button>
+
+          <button
+            onClick={onPrev}
+            className="text-zinc-300 hover:text-white transition-colors"
+            title="Previous Track"
+          >
+            <SkipBack size={20} />
+          </button>
+
+          <button
+            onClick={onTogglePlay}
+            className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center hover:bg-signal-green transition-all shadow-md active:scale-95"
+            title={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? (
+              <Pause size={20} fill="currentColor" />
+            ) : (
+              <Play size={20} fill="currentColor" className="ml-0.5" />
+            )}
+          </button>
+
+          <button
+            onClick={onNext}
+            className="text-zinc-300 hover:text-white transition-colors"
+            title="Next Track"
+          >
+            <SkipForward size={20} />
+          </button>
+
+          <button
+            onClick={onToggleRepeat}
+            className={`transition-colors ${isRepeating ? 'text-signal-green' : 'text-zinc-400 hover:text-white'}`}
+            title="Loop Track"
+          >
+            <Repeat size={16} />
+          </button>
+        </div>
+
+        {/* Scrubber */}
+        <div className="w-full flex items-center gap-3">
+          <span className="font-mono text-xs text-zinc-400 w-10 text-right shrink-0">
+            {formatTime(currentTime)}
+          </span>
+
+          <div
+            ref={progressBarRef}
+            onClick={handleProgressBarClick}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            className="relative flex-grow h-2 bg-white/10 rounded-full cursor-pointer group flex items-center"
+          >
+            {/* Hover preview tooltip */}
+            {hoverSeekTime !== null && (
+              <div
+                className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 bg-black/90 border border-white/20 rounded font-mono text-[10px] text-white pointer-events-none z-30"
+                style={{ left: `${hoverPercent}%` }}
+              >
+                {formatTime(hoverSeekTime)}
+              </div>
+            )}
+
+            {/* Filled progress */}
+            <div
+              className="h-full bg-white group-hover:bg-signal-green rounded-full transition-colors relative"
+              style={{ width: `${currentPercent}%` }}
+            >
+              {/* Handle */}
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </div>
+
+          <span className="font-mono text-xs text-zinc-400 w-10 text-left shrink-0">
+            {formatTime(duration || currentTrack.duration)}
+          </span>
+        </div>
+      </div>
+
+      {/* RIGHT: Studio Features & Volume Controls */}
+      <div className="flex items-center justify-end gap-3 w-1/4 max-w-xs">
+        {/* Visualizer Mode Toggle */}
+        <button
+          onClick={onCycleVisualizerMode}
+          className="p-2 text-zinc-400 hover:text-signal-green hover:bg-white/5 rounded transition-colors relative"
+          title={`Visualizer Mode: ${visualizerMode.toUpperCase()}`}
+        >
+          <Eye size={17} />
+          <span className="absolute -top-1 -right-1 font-mono text-[8px] bg-black border border-white/20 text-zinc-300 px-1 rounded">
+            {visualizerMode[0].toUpperCase()}
+          </span>
+        </button>
+
+        {/* EQ Modal Button */}
+        <button
+          onClick={onOpenEQ}
+          className="p-2 text-zinc-400 hover:text-signal-green hover:bg-white/5 rounded transition-colors"
+          title="Parametric Equalizer"
+        >
+          <Sliders size={17} />
+        </button>
+
+        {/* Lyrics Modal Button */}
+        <button
+          onClick={onOpenLyrics}
+          className="p-2 text-zinc-400 hover:text-signal-green hover:bg-white/5 rounded transition-colors"
+          title="Synchronized Lyrics"
+        >
+          <Mic2 size={17} />
+        </button>
+
+        {/* Speed toggle */}
+        <button
+          onClick={onCyclePlaybackRate}
+          className="px-1.5 py-1 text-zinc-400 hover:text-white font-mono text-xs hover:bg-white/5 rounded transition-colors"
+          title="Playback Rate"
+        >
+          {playbackRate}x
+        </button>
+
+        {/* Volume */}
+        <div className="flex items-center gap-2 group">
+          <button
+            onClick={toggleMute}
+            className="text-zinc-400 hover:text-white transition-colors"
+          >
+            {volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
+            onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+            className="w-20 h-1 appearance-none bg-white/20 rounded-full cursor-pointer accent-signal-green"
+          />
+        </div>
+
+        {/* Queue Drawer Button */}
+        <button
+          onClick={onOpenQueue}
+          className="p-2 text-zinc-400 hover:text-white hover:bg-white/5 rounded transition-colors relative ml-1"
+          title="Playback Queue"
+        >
+          <ListMusic size={18} />
+          {queueLength > 0 && (
+            <span className="absolute -top-1 -right-1 font-mono text-[9px] bg-signal-green text-black font-bold px-1 rounded-full">
+              {queueLength}
+            </span>
+          )}
+        </button>
+      </div>
+    </footer>
+  );
+};
