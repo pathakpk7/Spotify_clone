@@ -10,16 +10,16 @@ export interface Track {
   title: string;
   artist: string;
   album?: string;
-  genre: string;
-  year: string;
   duration: number; // in seconds
   src: string;
-  art: string;
+  art?: string;
   source: TrackSource;
   qualityBadge?: string;
-  externalId?: string;
+  youtubeId?: string;
+  spotifyUri?: string;
   lyrics?: LyricLine[];
   isLiked?: boolean;
+  addedAt?: number;
 }
 
 export interface Playlist {

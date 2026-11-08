@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, Heart, Plus, Disc, Sparkles } from 'lucide-react';
+import { Play, Pause, Heart, Plus, Music, UploadCloud } from 'lucide-react';
 import { Track } from '../../types/music';
 
 interface HeroShowcaseProps {
@@ -11,6 +11,7 @@ interface HeroShowcaseProps {
   onTogglePlay: () => void;
   onAddToQueue: (track: Track) => void;
   onToggleLike: (trackId: string) => void;
+  onOpenUpload: () => void;
 }
 
 export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
@@ -20,14 +21,21 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
   onPlayTrack,
   onTogglePlay,
   onAddToQueue,
-  onToggleLike
+  onToggleLike,
+  onOpenUpload
 }) => {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const featuredTrack = tracks[activeSlideIndex] || currentTrack;
   const isCurrentPlaying = isPlaying && currentTrack.id === featuredTrack.id;
 
-  const handleNextSlide = (idx: number) => {
-    setActiveSlideIndex(idx);
+  const formatSource = (source: string) => {
+    switch (source) {
+      case 'local': return 'Local File';
+      case 'upload': return 'Imported Audio';
+      case 'spotify': return 'Spotify Stream';
+      case 'youtube': return 'YouTube Stream';
+      default: return 'Audio File';
+    }
   };
 
   return (
@@ -36,38 +44,41 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
         
         {/* Left Narrative */}
         <div className="lg:col-span-7 flex flex-col">
-          {/* Telemetry metadata kicker */}
+          {/* Metadata Kicker */}
           <div className="flex items-center gap-2.5 font-mono text-xs uppercase tracking-widest text-zinc-400 mb-4">
-            <span className="text-signal-green font-semibold flex items-center gap-1.5">
-              <Sparkles size={13} />
-              Curated Release
+            <span className="text-signal-green font-semibold">
+              {formatSource(featuredTrack.source)}
             </span>
             <span className="text-zinc-600">•</span>
-            <span>{featuredTrack.genre}</span>
-            <span className="text-zinc-600">•</span>
-            <span>{featuredTrack.year}</span>
+            <span>{featuredTrack.album || 'Audio Vault'}</span>
+            {featuredTrack.qualityBadge && (
+              <>
+                <span className="text-zinc-600">•</span>
+                <span className="text-zinc-300 font-semibold">{featuredTrack.qualityBadge}</span>
+              </>
+            )}
           </div>
 
           {/* Heading */}
           <motion.h1
             key={featuredTrack.id}
-            initial={{ opacity: 0, y: 25 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-[1.05] mb-5"
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="font-display font-extrabold text-3xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-[1.08] mb-4 truncate"
           >
             {featuredTrack.title}
           </motion.h1>
 
-          {/* Subtitle */}
+          {/* Artist & Info */}
           <motion.p
             key={`${featuredTrack.id}-artist`}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
             className="text-base sm:text-lg text-zinc-300 max-w-xl font-body leading-relaxed mb-8"
           >
-            By <span className="text-white font-semibold">{featuredTrack.artist}</span>. Engineered for pristine acoustic depth and dynamic spatial response on studio reference hardware.
+            {featuredTrack.artist}
           </motion.p>
 
           {/* Primary Action Buttons */}
@@ -83,7 +94,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
               className="px-6 py-3.5 bg-signal-green hover:bg-signal-green-hover text-black font-semibold rounded text-sm font-body flex items-center gap-2.5 transition-all shadow-signal active:scale-95"
             >
               {isCurrentPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
-              <span>{isCurrentPlaying ? 'Pause Audio' : 'Start Playback'}</span>
+              <span>{isCurrentPlaying ? 'Pause Audio' : 'Play Track'}</span>
             </button>
 
             <button
@@ -92,6 +103,14 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
             >
               <Plus size={16} />
               <span>Add to Queue</span>
+            </button>
+
+            <button
+              onClick={onOpenUpload}
+              className="px-5 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white rounded text-sm font-body font-medium flex items-center gap-2 transition-all"
+            >
+              <UploadCloud size={16} className="text-signal-green" />
+              <span>Add Your Music</span>
             </button>
 
             <button
@@ -106,25 +125,27 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
             </button>
           </div>
 
-          {/* Slide Indicator Dots */}
-          <div className="flex items-center gap-4">
-            <span className="font-mono text-xs text-zinc-500 tracking-wider">
-              <span className="text-white font-bold">0{activeSlideIndex + 1}</span> / 0{Math.min(5, tracks.length)}
-            </span>
-            <div className="flex items-center gap-2">
-              {tracks.slice(0, 5).map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleNextSlide(idx)}
-                  className={`h-1 rounded-full transition-all ${
-                    idx === activeSlideIndex
-                      ? 'w-8 bg-signal-green'
-                      : 'w-2.5 bg-white/20 hover:bg-white/40'
-                  }`}
-                />
-              ))}
+          {/* Slide Indicators if multiple tracks */}
+          {tracks.length > 1 && (
+            <div className="flex items-center gap-4">
+              <span className="font-mono text-xs text-zinc-500 tracking-wider">
+                <span className="text-white font-bold">0{activeSlideIndex + 1}</span> / 0{Math.min(5, tracks.length)}
+              </span>
+              <div className="flex items-center gap-2">
+                {tracks.slice(0, 5).map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveSlideIndex(idx)}
+                    className={`h-1 rounded-full transition-all ${
+                      idx === activeSlideIndex
+                        ? 'w-8 bg-signal-green'
+                        : 'w-2.5 bg-white/20 hover:bg-white/40'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Right 3D Vinyl Showcase */}
@@ -132,40 +153,43 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
           <div className="relative group w-72 h-72 sm:w-80 sm:h-80 cursor-pointer">
             
             {/* Spinning Vinyl Disc */}
-            <motion.div
-              className={`absolute top-2 right-[-24px] sm:right-[-40px] w-68 h-68 sm:w-76 sm:h-76 w-[270px] h-[270px] sm:w-[300px] sm:h-[300px] rounded-full bg-gradient-to-tr from-black via-zinc-900 to-black border border-white/10 shadow-vinyl flex items-center justify-center transition-transform duration-700 ease-out ${
+            <div
+              className={`absolute top-2 right-[-24px] sm:right-[-40px] w-[270px] h-[270px] sm:w-[300px] sm:h-[300px] rounded-full bg-gradient-to-tr from-black via-zinc-900 to-black border border-white/10 shadow-vinyl flex items-center justify-center transition-transform duration-700 ease-out ${
                 isCurrentPlaying
                   ? 'translate-x-16 sm:translate-x-20 animate-spin-slow'
                   : 'group-hover:translate-x-12 sm:group-hover:translate-x-16'
               }`}
             >
-              {/* Vinyl Grooves */}
               <div className="absolute inset-4 rounded-full border border-white/5 pointer-events-none" />
               <div className="absolute inset-10 rounded-full border border-white/5 pointer-events-none" />
               <div className="absolute inset-16 rounded-full border border-white/5 pointer-events-none" />
 
-              {/* Center Vinyl Label */}
-              <div className="w-20 h-20 rounded-full bg-signal-green flex items-center justify-center border-4 border-black text-black font-display font-extrabold text-[10px] tracking-wider shadow-inner">
+              <div className="w-20 h-20 rounded-full bg-signal-green flex items-center justify-center border-4 border-black text-black font-display font-extrabold text-[10px] tracking-wider">
                 PULSE
               </div>
-            </motion.div>
+            </div>
 
-            {/* Album Sleeve Art Cover */}
+            {/* Sleeve Art Cover */}
             <motion.div
               key={featuredTrack.id}
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4 }}
-              className="relative z-10 w-full h-full rounded-md overflow-hidden shadow-2xl bg-black border border-white/10"
+              transition={{ duration: 0.35 }}
+              className="relative z-10 w-full h-full rounded-md overflow-hidden shadow-2xl bg-black border border-white/10 flex items-center justify-center"
             >
-              <img
-                src={featuredTrack.art}
-                alt={featuredTrack.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-              />
-              <div className="absolute top-3 left-3 px-2 py-1 bg-black/70 backdrop-blur-md rounded font-mono text-[10px] font-semibold text-white tracking-widest border border-white/10">
-                {featuredTrack.qualityBadge || 'LOSSLESS'}
-              </div>
+              {featuredTrack.art ? (
+                <img
+                  src={featuredTrack.art}
+                  alt={featuredTrack.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-zinc-500 p-6 text-center">
+                  <Music size={56} className="mb-3 text-signal-green" />
+                  <span className="font-mono text-xs text-zinc-400 font-semibold">{featuredTrack.title}</span>
+                  <span className="font-mono text-[10px] text-zinc-600">{featuredTrack.artist}</span>
+                </div>
+              )}
             </motion.div>
           </div>
         </div>

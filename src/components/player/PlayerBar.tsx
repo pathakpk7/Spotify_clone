@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Play, 
   Pause, 
@@ -13,7 +13,8 @@ import {
   ListMusic, 
   Heart,
   Eye,
-  Gauge
+  Speaker,
+  Music
 } from 'lucide-react';
 import { Track, VisualizerMode } from '../../types/music';
 
@@ -71,7 +72,20 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
   const [hoverSeekTime, setHoverSeekTime] = useState<number | null>(null);
   const [hoverPercent, setHoverPercent] = useState<number>(0);
   const [lastVolume, setLastVolume] = useState<number>(0.7);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [isDeviceMenuOpen, setIsDeviceMenuOpen] = useState(false);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('default');
   const progressBarRef = useRef<HTMLDivElement | null>(null);
+
+  // Fetch real connected audio output devices
+  useEffect(() => {
+    if (navigator.mediaDevices?.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices().then((devices) => {
+        const outputs = devices.filter((d) => d.kind === 'audiooutput');
+        setAudioDevices(outputs);
+      }).catch(() => {});
+    }
+  }, []);
 
   const formatTime = (seconds: number) => {
     if (isNaN(seconds) || seconds < 0) return '0:00';
@@ -114,14 +128,32 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
 
   return (
     <footer className="fixed bottom-0 left-0 right-0 h-24 bg-[#0d0f13]/95 backdrop-blur-2xl border-t border-white/10 px-6 md:px-8 z-40 flex items-center justify-between">
+      {/* Hidden YouTube IFrame when playing YouTube streams */}
+      {currentTrack.source === 'youtube' && currentTrack.youtubeId && (
+        <div className="fixed bottom-28 right-8 z-50 rounded-lg overflow-hidden border border-white/20 shadow-2xl bg-black">
+          <iframe
+            width="280"
+            height="158"
+            src={`https://www.youtube.com/embed/${currentTrack.youtubeId}?autoplay=1&enablejsapi=1`}
+            title={currentTrack.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            className="block"
+          />
+        </div>
+      )}
+
       {/* LEFT: Track Info & Artwork */}
       <div className="flex items-center gap-4 min-w-0 w-1/4 max-w-xs">
-        <div className="relative w-14 h-14 rounded overflow-hidden bg-black shrink-0 border border-white/10 shadow-lg group">
-          <img
-            src={currentTrack.art}
-            alt={currentTrack.title}
-            className="w-full h-full object-cover"
-          />
+        <div className="relative w-14 h-14 rounded overflow-hidden bg-black shrink-0 border border-white/10 shadow-lg flex items-center justify-center">
+          {currentTrack.art ? (
+            <img
+              src={currentTrack.art}
+              alt={currentTrack.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Music size={24} className="text-zinc-500" />
+          )}
 
           {/* Equalizer Wavelet Bar Overlay */}
           {isPlaying && (
@@ -142,7 +174,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             {currentTrack.artist}
           </p>
           <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider">
-            {currentTrack.qualityBadge || 'LOSSLESS'}
+            {currentTrack.qualityBadge || currentTrack.source.toUpperCase()}
           </span>
         </div>
 
@@ -158,7 +190,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
         </button>
       </div>
 
-      {/* CENTER: Transport Controls & Precision Scrubber */}
+      {/* CENTER: Transport Controls & Scrubber */}
       <div className="flex flex-col items-center max-w-2xl w-full mx-4">
         {/* Buttons */}
         <div className="flex items-center gap-6 mb-2">
@@ -235,7 +267,6 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
               className="h-full bg-white group-hover:bg-signal-green rounded-full transition-colors relative"
               style={{ width: `${currentPercent}%` }}
             >
-              {/* Handle */}
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </div>
@@ -247,7 +278,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
       </div>
 
       {/* RIGHT: Studio Features & Volume Controls */}
-      <div className="flex items-center justify-end gap-3 w-1/4 max-w-xs">
+      <div className="flex items-center justify-end gap-3 w-1/4 max-w-xs relative">
         {/* Visualizer Mode Toggle */}
         <button
           onClick={onCycleVisualizerMode}
@@ -286,6 +317,42 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
         >
           {playbackRate}x
         </button>
+
+        {/* Audio Output Devices Popover */}
+        <div className="relative">
+          <button
+            onClick={() => setIsDeviceMenuOpen(!isDeviceMenuOpen)}
+            className={`p-2 rounded transition-colors ${isDeviceMenuOpen ? 'text-signal-green bg-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+            title="Audio Output Device"
+          >
+            <Speaker size={17} />
+          </button>
+
+          {isDeviceMenuOpen && (
+            <div className="absolute bottom-12 right-0 w-64 bg-[#14161c] border border-white/15 rounded-md shadow-2xl p-3 z-50 text-xs font-mono">
+              <span className="block text-[10px] text-zinc-400 uppercase tracking-wider mb-2">
+                Real Audio Outputs
+              </span>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                <button
+                  onClick={() => { setSelectedDeviceId('default'); setIsDeviceMenuOpen(false); }}
+                  className={`w-full text-left p-1.5 rounded truncate ${selectedDeviceId === 'default' ? 'bg-signal-green text-black font-semibold' : 'text-zinc-300 hover:bg-white/5'}`}
+                >
+                  Default System Speaker
+                </button>
+                {audioDevices.map((dev) => (
+                  <button
+                    key={dev.deviceId}
+                    onClick={() => { setSelectedDeviceId(dev.deviceId); setIsDeviceMenuOpen(false); }}
+                    className={`w-full text-left p-1.5 rounded truncate ${selectedDeviceId === dev.deviceId ? 'bg-signal-green text-black font-semibold' : 'text-zinc-300 hover:bg-white/5'}`}
+                  >
+                    {dev.label || `Audio Device (${dev.deviceId.slice(0, 5)})`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Volume */}
         <div className="flex items-center gap-2 group">

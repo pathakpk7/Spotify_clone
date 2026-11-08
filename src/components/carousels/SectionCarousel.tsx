@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import { Play, Pause, ChevronLeft, ChevronRight, Heart, Music } from 'lucide-react';
 import { Track } from '../../types/music';
 
 interface SectionCarouselProps {
@@ -11,7 +11,6 @@ interface SectionCarouselProps {
   isPlaying: boolean;
   onPlayTrack: (track: Track) => void;
   onToggleLike: (trackId: string) => void;
-  isArtistCircle?: boolean;
 }
 
 export const SectionCarousel: React.FC<SectionCarouselProps> = ({
@@ -21,8 +20,7 @@ export const SectionCarousel: React.FC<SectionCarouselProps> = ({
   currentTrack,
   isPlaying,
   onPlayTrack,
-  onToggleLike,
-  isArtistCircle = false
+  onToggleLike
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -41,6 +39,8 @@ export const SectionCarousel: React.FC<SectionCarouselProps> = ({
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  if (!tracks || tracks.length === 0) return null;
 
   return (
     <section className="px-8 md:px-12 py-10 border-b border-white/10">
@@ -91,22 +91,22 @@ export const SectionCarousel: React.FC<SectionCarouselProps> = ({
               onClick={() => onPlayTrack(track)}
             >
               {/* Image Thumbnail Container */}
-              <div
-                className={`relative w-full aspect-square bg-black overflow-hidden mb-3 border border-white/10 shadow-lg ${
-                  isArtistCircle ? 'rounded-full' : 'rounded-md'
-                }`}
-              >
-                <img
-                  src={track.art}
-                  alt={track.title}
-                  loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                />
+              <div className="relative w-full aspect-square bg-[#14161c] rounded-md overflow-hidden mb-3 border border-white/10 shadow-lg flex items-center justify-center">
+                {track.art ? (
+                  <img
+                    src={track.art}
+                    alt={track.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                  />
+                ) : (
+                  <Music size={40} className="text-zinc-600 group-hover:text-signal-green transition-colors" />
+                )}
 
                 {/* Quality Badge */}
-                {!isArtistCircle && (
+                {track.qualityBadge && (
                   <span className="absolute top-2.5 left-2.5 px-2 py-0.5 bg-black/75 backdrop-blur-md rounded text-[9px] font-mono font-medium text-white tracking-wider border border-white/10">
-                    {track.qualityBadge || 'LOSSLESS'}
+                    {track.qualityBadge}
                   </span>
                 )}
 
@@ -132,22 +132,20 @@ export const SectionCarousel: React.FC<SectionCarouselProps> = ({
               </div>
 
               {/* Title & Artist Metadata */}
-              <div className={`flex flex-col ${isArtistCircle ? 'items-center text-center' : ''}`}>
+              <div className="flex flex-col">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className={`text-sm font-semibold truncate ${isCurrent ? 'text-signal-green' : 'text-white'} group-hover:text-signal-green transition-colors`}>
                     {track.title}
                   </h3>
-                  {!isArtistCircle && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleLike(track.id);
-                      }}
-                      className="text-zinc-500 hover:text-red-400 transition-colors shrink-0"
-                    >
-                      <Heart size={14} fill={track.isLiked ? '#ef4444' : 'none'} className={track.isLiked ? 'text-red-500' : ''} />
-                    </button>
-                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleLike(track.id);
+                    }}
+                    className="text-zinc-500 hover:text-red-400 transition-colors shrink-0"
+                  >
+                    <Heart size={14} fill={track.isLiked ? '#ef4444' : 'none'} className={track.isLiked ? 'text-red-500' : ''} />
+                  </button>
                 </div>
 
                 <p className="text-xs text-zinc-400 truncate mt-0.5 font-body">
@@ -155,7 +153,7 @@ export const SectionCarousel: React.FC<SectionCarouselProps> = ({
                 </p>
 
                 <div className="flex items-center gap-2 mt-1 font-mono text-[11px] text-zinc-500">
-                  <span>{track.genre}</span>
+                  <span>{track.album || 'Audio File'}</span>
                   <span>•</span>
                   <span>{formatTime(track.duration)}</span>
                 </div>

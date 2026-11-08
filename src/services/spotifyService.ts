@@ -1,76 +1,65 @@
 import { Track } from '../types/music';
 
-export interface SpotifyTrackItem {
-  id: string;
-  name: string;
-  artists: { name: string }[];
-  album: {
-    name: string;
-    images: { url: string }[];
-    release_date: string;
-  };
-  duration_ms: number;
-  preview_url: string | null;
-}
-
 export const spotifyService = {
-  // Built-in curated Spotify catalog tracks for instant preview
-  curatedSpotifyTracks: [
-    {
-      id: 'sp-1',
-      title: 'Starboy',
-      artist: 'The Weeknd, Daft Punk',
-      album: 'Starboy',
-      genre: 'Electro Pop',
-      year: '2016',
-      duration: 230,
-      src: 'music1.mp3', // high-res local audio fallback
-      art: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&h=600&fit=crop',
-      source: 'spotify' as const,
-      qualityBadge: 'SPOTIFY HQ'
-    },
-    {
-      id: 'sp-2',
-      title: 'Blinding Lights',
-      artist: 'The Weeknd',
-      album: 'After Hours',
-      genre: 'Synthwave',
-      year: '2020',
-      duration: 200,
-      src: 'music3.mp3',
-      art: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=600&fit=crop',
-      source: 'spotify' as const,
-      qualityBadge: 'SPOTIFY HQ'
-    },
-    {
-      id: 'sp-3',
-      title: 'Midnight City',
-      artist: 'M83',
-      album: 'Hurry Up, We\'re Dreaming',
-      genre: 'Indie Electronic',
-      year: '2011',
-      duration: 243,
-      src: 'music2.mp3',
-      art: 'https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=600&h=600&fit=crop',
-      source: 'spotify' as const,
-      qualityBadge: 'SPOTIFY HQ'
+  // Extract Spotify resource ID and type
+  parseSpotifyUrl(url: string): { type: 'track' | 'album' | 'playlist' | null; id: string | null } {
+    const trackMatch = url.match(/spotify(?:\.com|\:)(?:embed\/)?(track|album|playlist)[\/:]([a-zA-Z0-9]+)/);
+    if (trackMatch) {
+      return {
+        type: trackMatch[1] as 'track' | 'album' | 'playlist',
+        id: trackMatch[2]
+      };
     }
-  ] as Track[],
-
-  // Connect or Authorize Spotify
-  connectAccount(clientId?: string): { success: boolean; username: string } {
-    return {
-      success: true,
-      username: clientId ? `Spotify User (${clientId.slice(0, 6)}...)` : 'Spotify Pro Audio'
-    };
+    return { type: null, id: null };
   },
 
-  // Search Spotify Catalog
-  async searchSpotify(query: string): Promise<Track[]> {
-    if (!query) return [];
-    const q = query.toLowerCase();
-    return spotifyService.curatedSpotifyTracks.filter(
-      t => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
-    );
+  // Get real embed URL
+  getEmbedUrl(url: string): string | null {
+    const { type, id } = this.parseSpotifyUrl(url);
+    if (type && id) {
+      return `https://open.spotify.com/embed/${type}/${id}`;
+    }
+    return null;
+  },
+
+  // Fetch real metadata from Spotify official oEmbed API (free, no token needed)
+  async fetchTrackFromUrl(url: string): Promise<Track | null> {
+    const { type, id } = this.parseSpotifyUrl(url);
+    if (!type || !id) return null;
+
+    try {
+      const oembedUrl = `https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`;
+      const res = await fetch(oembedUrl);
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          id: `spotify-${id}`,
+          title: data.title || `Spotify ${type}`,
+          artist: data.author_name || 'Spotify Artist',
+          album: 'Spotify Stream',
+          duration: 180,
+          src: this.getEmbedUrl(url) || url,
+          art: data.thumbnail_url || 'https://open.spotifycdn.com/cdn/images/favicon.0f31d2ea.ico',
+          source: 'spotify',
+          qualityBadge: 'SPOTIFY',
+          spotifyUri: `spotify:${type}:${id}`
+        };
+      }
+    } catch (e) {
+      console.warn('Spotify oEmbed lookup note:', e);
+    }
+
+    // Fallback if oEmbed is offline
+    return {
+      id: `spotify-${id}`,
+      title: `Spotify ${type.toUpperCase()} #${id.slice(0, 6)}`,
+      artist: 'Spotify',
+      album: 'Spotify Stream',
+      duration: 180,
+      src: this.getEmbedUrl(url) || url,
+      source: 'spotify',
+      qualityBadge: 'SPOTIFY',
+      spotifyUri: `spotify:${type}:${id}`
+    };
   }
 };

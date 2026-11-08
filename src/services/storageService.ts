@@ -4,7 +4,6 @@ const DB_NAME = 'PulseAudioDB';
 const DB_VERSION = 1;
 const TRACKS_STORE = 'custom_tracks';
 
-// Open IndexedDB database
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -27,7 +26,6 @@ export const storageService = {
       const tx = db.transaction(TRACKS_STORE, 'readwrite');
       const store = tx.objectStore(TRACKS_STORE);
 
-      // If audioBlob provided, store blob in record
       const record = {
         ...track,
         blob: audioBlob || null
@@ -39,7 +37,7 @@ export const storageService = {
         req.onerror = () => reject(req.error);
       });
     } catch (e) {
-      console.warn('IndexedDB save failed, falling back to session/localStorage:', e);
+      console.warn('IndexedDB save failed:', e);
     }
   },
 
@@ -63,14 +61,14 @@ export const storageService = {
               id: rec.id,
               title: rec.title,
               artist: rec.artist,
-              album: rec.album,
-              genre: rec.genre || 'Local Audio',
-              year: rec.year || '2024',
+              album: rec.album || 'Local Library',
               duration: rec.duration || 180,
               src,
-              art: rec.art || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&h=500&fit=crop',
-              source: 'upload',
-              qualityBadge: 'FLAC / WAV'
+              art: rec.art,
+              source: rec.source || 'upload',
+              qualityBadge: rec.qualityBadge || 'LOCAL FILE',
+              lyrics: rec.lyrics,
+              isLiked: rec.isLiked
             };
           });
           resolve(tracks);
@@ -107,9 +105,7 @@ export const storageService = {
       console.error(e);
     }
     return [
-      { id: 'liked', name: 'Liked Recordings', trackIds: ['0', '1'], isCustom: false },
-      { id: 'analog', name: 'Analog Master Tapes', trackIds: ['0', '2', '3'], isCustom: true },
-      { id: 'late-night', name: 'Late Night Synthesis', trackIds: ['1', '4'], isCustom: true }
+      { id: 'liked', name: 'Liked Songs', trackIds: [], isCustom: false }
     ];
   },
 
@@ -129,7 +125,7 @@ export const storageService = {
     } catch (e) {
       console.error(e);
     }
-    return ['0', '2'];
+    return [];
   },
 
   saveLikedTrackIds(ids: string[]) {

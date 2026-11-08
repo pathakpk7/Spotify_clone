@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { audioEngine } from './services/audioEngine';
 import { storageService } from './services/storageService';
 import { INITIAL_TRACKS } from './data/defaultCatalog';
-import { Track, Playlist, VisualizerMode, ServiceConnection } from './types/music';
+import { Track, Playlist, VisualizerMode, ServiceConnection, LyricLine } from './types/music';
 
 // Components
 import { Sidebar } from './components/sidebar/Sidebar';
@@ -96,7 +96,11 @@ export const App: React.FC = () => {
       setCurrentTrackIndex(0);
     }
 
-    audioEngine.play(track.src);
+    if (track.source !== 'youtube') {
+      audioEngine.play(track.src);
+    } else {
+      setIsPlaying(true);
+    }
   };
 
   const handleTogglePlay = () => {
@@ -116,7 +120,9 @@ export const App: React.FC = () => {
       nextIdx = (currentTrackIndex + 1) % queue.length;
     }
     setCurrentTrackIndex(nextIdx);
-    audioEngine.play(queue[nextIdx].src);
+    if (queue[nextIdx].source !== 'youtube') {
+      audioEngine.play(queue[nextIdx].src);
+    }
   };
 
   const handlePrev = () => {
@@ -127,7 +133,9 @@ export const App: React.FC = () => {
     if (queue.length === 0) return;
     const prevIdx = (currentTrackIndex - 1 + queue.length) % queue.length;
     setCurrentTrackIndex(prevIdx);
-    audioEngine.play(queue[prevIdx].src);
+    if (queue[prevIdx].source !== 'youtube') {
+      audioEngine.play(queue[prevIdx].src);
+    }
   };
 
   const handleSeek = (time: number) => {
@@ -197,13 +205,20 @@ export const App: React.FC = () => {
     setCurrentTrackIndex(0);
   };
 
-  // Upload track handler
   const handleTrackUploaded = (newTrack: Track) => {
     setTracks((prev) => [newTrack, ...prev]);
     setQueue((prev) => [newTrack, ...prev]);
   };
 
-  // Create playlist handler
+  const handleSaveLyrics = (trackId: string, lyrics: LyricLine[]) => {
+    setTracks((prev) =>
+      prev.map((t) => (t.id === trackId ? { ...t, lyrics } : t))
+    );
+    setQueue((prev) =>
+      prev.map((t) => (t.id === trackId ? { ...t, lyrics } : t))
+    );
+  };
+
   const handleCreatePlaylist = (name: string) => {
     const newPl: Playlist = {
       id: `pl-${Date.now()}`,
@@ -251,14 +266,35 @@ export const App: React.FC = () => {
       (t) =>
         t.title.toLowerCase().includes(q) ||
         t.artist.toLowerCase().includes(q) ||
-        t.genre.toLowerCase().includes(q)
+        (t.album && t.album.toLowerCase().includes(q))
     );
   }, [tracks, searchQuery]);
+
+  // Real categorizations
+  const localWorkspaceTracks = useMemo(
+    () => tracks.filter((t) => t.source === 'local'),
+    [tracks]
+  );
+
+  const importedTracks = useMemo(
+    () => tracks.filter((t) => t.source === 'upload'),
+    [tracks]
+  );
+
+  const streamingTracks = useMemo(
+    () => tracks.filter((t) => t.source === 'spotify' || t.source === 'youtube'),
+    [tracks]
+  );
+
+  const likedTracks = useMemo(
+    () => tracks.filter((t) => t.isLiked),
+    [tracks]
+  );
 
   // Playlist Filtered Tracks
   const displayTracks = useMemo(() => {
     if (activePlaylistId === 'liked') {
-      return tracks.filter((t) => t.isLiked);
+      return likedTracks;
     }
     if (activePlaylistId) {
       const pl = playlists.find((p) => p.id === activePlaylistId);
@@ -267,10 +303,10 @@ export const App: React.FC = () => {
       }
     }
     if (activeView === 'library') {
-      return tracks.filter((t) => t.source === 'upload' || t.source === 'local');
+      return tracks;
     }
     return filteredTracks;
-  }, [tracks, activePlaylistId, activeView, filteredTracks, playlists]);
+  }, [tracks, activePlaylistId, activeView, filteredTracks, playlists, likedTracks]);
 
   return (
     <div className="flex min-h-screen bg-canvas text-white font-body selection:bg-signal-green selection:text-black">
@@ -323,6 +359,7 @@ export const App: React.FC = () => {
               onTogglePlay={handleTogglePlay}
               onAddToQueue={handleAddToQueue}
               onToggleLike={handleToggleLike}
+              onOpenUpload={() => setIsUploadOpen(true)}
             />
           </div>
         )}
@@ -334,7 +371,7 @@ export const App: React.FC = () => {
               Search Results for "{searchQuery}"
             </h2>
             <p className="text-xs font-mono text-zinc-400 mb-8">
-              Found {filteredTracks.length} matching audio recordings
+              Found {filteredTracks.length} matching audio tracks
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
               {filteredTracks.map((track) => (
@@ -343,8 +380,12 @@ export const App: React.FC = () => {
                   onClick={() => handlePlayTrack(track)}
                   className="bg-black/40 border border-white/10 rounded-md p-3 cursor-pointer group hover:border-signal-green/50 transition-all"
                 >
-                  <div className="relative aspect-square rounded overflow-hidden mb-3">
-                    <img src={track.art} alt={track.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <div className="relative aspect-square rounded overflow-hidden mb-3 bg-[#14161c] flex items-center justify-center">
+                    {track.art ? (
+                      <img src={track.art} alt={track.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <span className="text-xs font-mono text-zinc-500">AUDIO</span>
+                    )}
                   </div>
                   <h4 className="text-sm font-semibold truncate text-white group-hover:text-signal-green">
                     {track.title}
@@ -361,78 +402,101 @@ export const App: React.FC = () => {
                 <h2 className="font-display font-bold text-3xl text-white mb-2">
                   {activePlaylistId
                     ? playlists.find((p) => p.id === activePlaylistId)?.name
-                    : 'Local Offline Library'}
+                    : 'Your Audio Library'}
                 </h2>
                 <p className="text-xs font-mono text-zinc-400">
-                  {displayTracks.length} High-Resolution Tracks Available
+                  {displayTracks.length} Audio Tracks Available
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-              {displayTracks.map((track) => (
-                <div
-                  key={track.id}
-                  onClick={() => handlePlayTrack(track)}
-                  className="bg-black/40 border border-white/10 rounded-md p-3 cursor-pointer group hover:border-signal-green/50 transition-all"
+            {displayTracks.length === 0 ? (
+              <div className="py-16 text-center border border-dashed border-white/10 rounded-lg">
+                <p className="text-zinc-400 font-mono text-xs mb-4">No tracks added to this view yet</p>
+                <button
+                  onClick={() => setIsUploadOpen(true)}
+                  className="px-4 py-2 bg-signal-green text-black font-semibold rounded text-xs font-mono"
                 >
-                  <div className="relative aspect-square rounded overflow-hidden mb-3">
-                    <img src={track.art} alt={track.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                    <span className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/80 rounded font-mono text-[9px] text-signal-green">
-                      {track.qualityBadge || 'LOCAL'}
-                    </span>
+                  Import Local Audio Files
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {displayTracks.map((track) => (
+                  <div
+                    key={track.id}
+                    onClick={() => handlePlayTrack(track)}
+                    className="bg-black/40 border border-white/10 rounded-md p-3 cursor-pointer group hover:border-signal-green/50 transition-all"
+                  >
+                    <div className="relative aspect-square rounded overflow-hidden mb-3 bg-[#14161c] flex items-center justify-center">
+                      {track.art ? (
+                        <img src={track.art} alt={track.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      ) : (
+                        <span className="text-xs font-mono text-zinc-500">AUDIO</span>
+                      )}
+                      <span className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/80 rounded font-mono text-[9px] text-signal-green">
+                        {track.qualityBadge || track.source.toUpperCase()}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-semibold truncate text-white group-hover:text-signal-green">
+                      {track.title}
+                    </h4>
+                    <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
                   </div>
-                  <h4 className="text-sm font-semibold truncate text-white group-hover:text-signal-green">
-                    {track.title}
-                  </h4>
-                  <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <>
-            {/* Standard Feed Carousels */}
-            <SectionCarousel
-              title="Recently Mastered"
-              subtitle="Pick up your acoustic session with zero latency"
-              tracks={tracks}
-              currentTrack={currentTrack}
-              isPlaying={isPlaying}
-              onPlayTrack={handlePlayTrack}
-              onToggleLike={handleToggleLike}
-            />
+            {/* Real Sections */}
+            {localWorkspaceTracks.length > 0 && (
+              <SectionCarousel
+                title="Workspace Audio Files"
+                subtitle="Local audio files detected directly in your workspace"
+                tracks={localWorkspaceTracks}
+                currentTrack={currentTrack}
+                isPlaying={isPlaying}
+                onPlayTrack={handlePlayTrack}
+                onToggleLike={handleToggleLike}
+              />
+            )}
 
-            <SectionCarousel
-              title="Featured Sound Architects"
-              subtitle="Pioneering producers sculpting spatial and modular soundscapes"
-              tracks={tracks}
-              currentTrack={currentTrack}
-              isPlaying={isPlaying}
-              onPlayTrack={handlePlayTrack}
-              onToggleLike={handleToggleLike}
-              isArtistCircle={true}
-            />
+            {importedTracks.length > 0 && (
+              <SectionCarousel
+                title="Imported Music Vault"
+                subtitle="Audio files imported into your offline browser storage"
+                tracks={importedTracks}
+                currentTrack={currentTrack}
+                isPlaying={isPlaying}
+                onPlayTrack={handlePlayTrack}
+                onToggleLike={handleToggleLike}
+              />
+            )}
 
-            <SectionCarousel
-              title="Acoustic Tendencies"
-              subtitle="Algorithmic flow tuned to your studio monitors"
-              tracks={[...tracks].reverse()}
-              currentTrack={currentTrack}
-              isPlaying={isPlaying}
-              onPlayTrack={handlePlayTrack}
-              onToggleLike={handleToggleLike}
-            />
+            {streamingTracks.length > 0 && (
+              <SectionCarousel
+                title="Streaming Audio Feeds"
+                subtitle="Connected Spotify and YouTube Music streams"
+                tracks={streamingTracks}
+                currentTrack={currentTrack}
+                isPlaying={isPlaying}
+                onPlayTrack={handlePlayTrack}
+                onToggleLike={handleToggleLike}
+              />
+            )}
 
-            <SectionCarousel
-              title="Fresh Studio Drops"
-              subtitle="Direct from master reel to browser DAC"
-              tracks={tracks}
-              currentTrack={currentTrack}
-              isPlaying={isPlaying}
-              onPlayTrack={handlePlayTrack}
-              onToggleLike={handleToggleLike}
-            />
+            {likedTracks.length > 0 && (
+              <SectionCarousel
+                title="Liked Tracks"
+                subtitle="Your favorited songs"
+                tracks={likedTracks}
+                currentTrack={currentTrack}
+                isPlaying={isPlaying}
+                onPlayTrack={handlePlayTrack}
+                onToggleLike={handleToggleLike}
+              />
+            )}
           </>
         )}
 
@@ -477,6 +541,7 @@ export const App: React.FC = () => {
         currentTrack={currentTrack}
         currentTime={currentTime}
         onSeek={handleSeek}
+        onSaveLyrics={handleSaveLyrics}
       />
 
       {/* Local Music File Upload Modal */}
@@ -503,7 +568,9 @@ export const App: React.FC = () => {
         currentTrackIndex={currentTrackIndex}
         onSelectTrack={(idx) => {
           setCurrentTrackIndex(idx);
-          audioEngine.play(queue[idx].src);
+          if (queue[idx].source !== 'youtube') {
+            audioEngine.play(queue[idx].src);
+          }
         }}
         onRemoveTrack={handleRemoveFromQueue}
         onClearQueue={handleClearQueue}
