@@ -20,6 +20,8 @@ export interface Track {
   lyrics?: LyricLine[];
   isLiked?: boolean;
   addedAt?: number;
+  startOffset?: number;
+  endOffset?: number;
 }
 
 export interface Playlist {

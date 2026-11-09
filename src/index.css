@@ -65,9 +65,11 @@ body {
 
 /* Headless YouTube Player Container - Strictly Hidden Off-Screen */
 #yt-headless-wrapper,
+#yt-headless-wrapper *,
 #yt-headless-container,
 iframe#yt-headless-container,
-iframe[src*="youtube.com/embed"]#yt-headless-container {
+iframe[src*="youtube.com"],
+iframe[src*="youtube-nocookie.com"] {
   position: fixed !important;
   top: -99999px !important;
   left: -99999px !important;
@@ -78,5 +80,6 @@ iframe[src*="youtube.com/embed"]#yt-headless-container {
   visibility: hidden !important;
   z-index: -99999 !important;
   overflow: hidden !important;
+  display: block !important;
 }
 

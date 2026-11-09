@@ -44,6 +44,8 @@ interface PlayerBarProps {
   onOpenLyrics: () => void;
   onOpenQueue: () => void;
   onOpenCutter?: () => void;
+  activeLoopRange?: [number, number] | null;
+  onClearLoop?: () => void;
 }
 
 export const PlayerBar: React.FC<PlayerBarProps> = ({
@@ -70,7 +72,9 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
   onOpenEQ,
   onOpenLyrics,
   onOpenQueue,
-  onOpenCutter
+  onOpenCutter,
+  activeLoopRange,
+  onClearLoop
 }) => {
   const [hoverSeekTime, setHoverSeekTime] = useState<number | null>(null);
   const [hoverPercent, setHoverPercent] = useState<number>(0);
@@ -176,9 +180,21 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
           <p className="text-xs text-zinc-400 truncate font-body">
             {currentTrack.artist}
           </p>
-          <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider">
-            {currentTrack.qualityBadge || currentTrack.source.toUpperCase()}
-          </span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider">
+              {currentTrack.qualityBadge || currentTrack.source.toUpperCase()}
+            </span>
+            {activeLoopRange && (
+              <button
+                onClick={onOpenCutter}
+                className="text-[9px] font-mono text-signal-green bg-signal-green/10 border border-signal-green/30 px-1.5 py-0.5 rounded flex items-center gap-1 hover:bg-signal-green/20 transition-colors"
+                title="Cut active - Click to adjust"
+              >
+                <Scissors size={9} />
+                <span>CUT {formatTime(activeLoopRange[0])}-{formatTime(activeLoopRange[1])}</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <button
@@ -265,6 +281,17 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
               </div>
             )}
 
+            {/* Cut Loop Region Highlight */}
+            {activeLoopRange && (duration > 0 || currentTrack.duration > 0) && (
+              <div
+                className="absolute top-0 bottom-0 bg-signal-green/35 border-x border-signal-green rounded pointer-events-none"
+                style={{
+                  left: `${(activeLoopRange[0] / (duration || currentTrack.duration)) * 100}%`,
+                  width: `${Math.max(1, ((activeLoopRange[1] - activeLoopRange[0]) / (duration || currentTrack.duration)) * 100)}%`
+                }}
+              />
+            )}
+
             {/* Filled progress */}
             <div
               className="h-full bg-white group-hover:bg-signal-green rounded-full transition-colors relative"
@@ -298,8 +325,12 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
         {onOpenCutter && (
           <button
             onClick={onOpenCutter}
-            className="p-2 text-zinc-400 hover:text-signal-green hover:bg-white/5 rounded transition-colors"
-            title="Cut & Loop Current Track"
+            className={`p-2 rounded transition-all ${
+              activeLoopRange
+                ? 'text-signal-green bg-signal-green/15 border border-signal-green/40 shadow-[0_0_12px_rgba(0,229,117,0.35)]'
+                : 'text-zinc-400 hover:text-signal-green hover:bg-white/5'
+            }`}
+            title={activeLoopRange ? 'Cut Active - Click to adjust or clear cut' : 'Cut & Loop Current Playing Song'}
           >
             <Scissors size={17} />
           </button>

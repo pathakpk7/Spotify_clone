@@ -26,9 +26,7 @@ import { CinematicLandingPortal } from './components/hero/CinematicLandingPortal
 
 export const App: React.FC = () => {
   // State: Portal Landing Experience
-  const [hasEnteredPortal, setHasEnteredPortal] = useState<boolean>(() => {
-    return sessionStorage.getItem('pulse_portal_entered') === 'true';
-  });
+  const [hasEnteredPortal, setHasEnteredPortal] = useState<boolean>(false);
   const [activeLoopRange, setActiveLoopRange] = useState<[number, number] | null>(null);
 
   // State: Tracks & Playback
@@ -168,7 +166,12 @@ export const App: React.FC = () => {
 
   // Audio Playback Handlers
   const handlePlayTrack = (track: Track) => {
-    setActiveLoopRange(null);
+    if (track.startOffset !== undefined && track.endOffset !== undefined) {
+      setActiveLoopRange([track.startOffset, track.endOffset]);
+    } else {
+      setActiveLoopRange(null);
+    }
+
     const queueIndex = queue.findIndex((t) => t.id === track.id);
     if (queueIndex !== -1) {
       setCurrentTrackIndex(queueIndex);
@@ -180,9 +183,15 @@ export const App: React.FC = () => {
     if (track.source === 'youtube' && track.youtubeId) {
       audioEngine.pause();
       youtubePlayer.playVideo(track.youtubeId);
+      if (track.startOffset !== undefined) {
+        setTimeout(() => youtubePlayer.seekTo(track.startOffset!), 350);
+      }
     } else {
       youtubePlayer.pause();
       audioEngine.play(track.src);
+      if (track.startOffset !== undefined) {
+        setTimeout(() => audioEngine.seek(track.startOffset!), 150);
+      }
     }
   };
 
@@ -819,6 +828,8 @@ export const App: React.FC = () => {
         onOpenLyrics={() => setIsLyricsOpen(true)}
         onOpenQueue={() => setIsQueueOpen(true)}
         onOpenCutter={() => setIsCutterOpen(true)}
+        activeLoopRange={activeLoopRange}
+        onClearLoop={() => setActiveLoopRange(null)}
       />
 
       {/* Precision Audio Cutter & Loop Modal */}
@@ -828,9 +839,11 @@ export const App: React.FC = () => {
         currentTrack={currentTrack}
         currentTime={currentTime}
         duration={duration}
+        activeLoopRange={activeLoopRange}
         onSeek={handleSeek}
         onSaveSnippet={handleTrackUploaded}
         onApplyLoop={handleApplyLoop}
+        onClearLoop={() => setActiveLoopRange(null)}
       />
 
       {/* Studio Parametric Equalizer Modal */}

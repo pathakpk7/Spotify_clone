@@ -92,8 +92,8 @@ class YouTubePlayerService {
 
     try {
       this.player = new window.YT.Player('yt-headless-container', {
-        height: '200',
-        width: '200',
+        height: '1',
+        width: '1',
         videoId: vid,
         playerVars: {
           autoplay: 1,

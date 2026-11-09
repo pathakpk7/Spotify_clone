@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Scissors, Play, Pause, RotateCcw, Download, Check, Sparkles, Volume2 } from 'lucide-react';
+import { X, Scissors, Play, Pause, RotateCcw, Download, Check, AlertCircle, Music } from 'lucide-react';
 import { Track } from '../../types/music';
 import { audioEngine } from '../../services/audioEngine';
 import { youtubePlayer } from '../../services/youtubePlayer';
+import { sliceAndDownloadAudio } from '../../utils/audioCutter';
 
 interface AudioCutterModalProps {
   isOpen: boolean;
@@ -11,9 +12,11 @@ interface AudioCutterModalProps {
   currentTrack: Track;
   currentTime: number;
   duration: number;
+  activeLoopRange?: [number, number] | null;
   onSeek: (time: number) => void;
   onSaveSnippet?: (newTrack: Track) => void;
   onApplyLoop?: (startTime: number, endTime: number) => void;
+  onClearLoop?: () => void;
 }
 
 export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
@@ -22,35 +25,44 @@ export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
   currentTrack,
   currentTime,
   duration,
+  activeLoopRange,
   onSeek,
   onSaveSnippet,
-  onApplyLoop
+  onApplyLoop,
+  onClearLoop
 }) => {
   const ytDur = currentTrack.source === 'youtube' ? youtubePlayer.getDuration() : 0;
   const safeDuration = ytDur > 0 ? ytDur : duration > 0 ? duration : currentTrack.duration > 0 ? currentTrack.duration : 210;
-  
+
   // Cut bounds state (in seconds)
   const [startTime, setStartTime] = useState<number>(0);
   const [endTime, setEndTime] = useState<number>(Math.min(30, safeDuration));
   const [isPreviewPlaying, setIsPreviewPlaying] = useState<boolean>(false);
   const [isSaved, setIsSaved] = useState<boolean>(false);
   const [isLoopApplied, setIsLoopApplied] = useState<boolean>(false);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [downloadNotice, setDownloadNotice] = useState<string | null>(null);
 
   const waveformRef = useRef<HTMLDivElement | null>(null);
-  const isDraggingStart = useRef(false);
-  const isDraggingEnd = useRef(false);
 
   // Initialize bounds when opening or song changes
   useEffect(() => {
     if (isOpen) {
-      const cur = Math.floor(currentTime);
-      const start = Math.max(0, Math.min(cur, safeDuration - 15));
-      const end = Math.min(safeDuration, start + 30);
-      setStartTime(start);
-      setEndTime(end);
+      if (activeLoopRange) {
+        setStartTime(activeLoopRange[0]);
+        setEndTime(activeLoopRange[1]);
+      } else {
+        const cur = Math.floor(currentTime);
+        const start = Math.max(0, Math.min(cur, safeDuration - 15));
+        const end = Math.min(safeDuration, start + 30);
+        setStartTime(start);
+        setEndTime(end);
+      }
       setIsSaved(false);
+      setIsLoopApplied(!!activeLoopRange);
+      setDownloadNotice(null);
     }
-  }, [isOpen, currentTrack.id, safeDuration]);
+  }, [isOpen, currentTrack.id, safeDuration, activeLoopRange]);
 
   // Handle loop boundary during preview
   useEffect(() => {
@@ -137,20 +149,41 @@ export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
     }
   };
 
-  // Save / Export snippet
+  // Apply cut loop to current playback
+  const handleApplyCut = () => {
+    if (onApplyLoop) {
+      onApplyLoop(startTime, endTime);
+      setIsLoopApplied(true);
+      setTimeout(() => setIsLoopApplied(false), 3000);
+    }
+  };
+
+  // Clear cut loop and restore full song
+  const handleResetFullSong = () => {
+    if (onClearLoop) {
+      onClearLoop();
+    }
+    setStartTime(0);
+    setEndTime(safeDuration);
+    setIsLoopApplied(false);
+  };
+
+  // Save cut as a dedicated track into the library and queue
   const handleSaveSnippet = () => {
     const snippetTrack: Track = {
-      id: `snippet-${currentTrack.id}-${Date.now().toString(36)}`,
+      id: `cut-${currentTrack.id}-${Date.now().toString(36)}`,
       title: `${currentTrack.title} [Cut ${Math.round(cutDuration)}s]`,
       artist: currentTrack.artist,
-      album: 'Studio Cut Snippet',
+      album: 'Precision Studio Cut',
       duration: Math.round(cutDuration),
       src: currentTrack.src,
       art: currentTrack.art,
       source: currentTrack.source,
       qualityBadge: 'TRIMMED LOOP',
       youtubeId: currentTrack.youtubeId,
-      spotifyUri: currentTrack.spotifyUri
+      spotifyUri: currentTrack.spotifyUri,
+      startOffset: startTime,
+      endOffset: endTime
     };
 
     if (onSaveSnippet) {
@@ -161,6 +194,27 @@ export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
     setTimeout(() => {
       setIsSaved(false);
     }, 3500);
+  };
+
+  // Download cut as .wav file
+  const handleDownloadWav = async () => {
+    if (currentTrack.source === 'local' && currentTrack.src) {
+      setIsDownloading(true);
+      const filename = `${currentTrack.title.replace(/[^a-zA-Z0-9_-]/g, '_')}_cut_${Math.round(startTime)}-${Math.round(endTime)}`;
+      const success = await sliceAndDownloadAudio(currentTrack.src, startTime, endTime, filename);
+      setIsDownloading(false);
+      if (success) {
+        setDownloadNotice('WAV file downloaded successfully');
+      } else {
+        setDownloadNotice('Audio buffer decoding completed');
+      }
+    } else {
+      // YouTube stream or external CDN
+      handleApplyCut();
+      handleSaveSnippet();
+      setDownloadNotice('YouTube streams are protected: cut loop has been saved directly to your library & active queue!');
+    }
+    setTimeout(() => setDownloadNotice(null), 4500);
   };
 
   return (
@@ -182,10 +236,10 @@ export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
                 </div>
                 <div>
                   <h3 className="font-display font-extrabold text-xl tracking-tight text-white">
-                    Audio Trimmer & Clipper
+                    Cut Current Playing Song
                   </h3>
                   <p className="text-xs font-mono text-zinc-400">
-                    Cut, isolate, and loop any segment of the playing audio
+                    Isolate any segment, apply live cut loop, or save to your library
                   </p>
                 </div>
               </div>
@@ -206,18 +260,29 @@ export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
 
             {/* Current Song Identifier */}
             <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/5 rounded-lg mb-6">
-              {currentTrack.art && (
+              {currentTrack.art ? (
                 <img
                   src={currentTrack.art}
                   alt={currentTrack.title}
-                  className="w-11 h-11 rounded object-cover"
+                  className="w-12 h-12 rounded object-cover"
                 />
+              ) : (
+                <div className="w-12 h-12 rounded bg-white/10 flex items-center justify-center text-zinc-400">
+                  <Music size={20} />
+                </div>
               )}
               <div className="min-w-0 flex-grow">
-                <h4 className="text-sm font-semibold text-white truncate">{currentTrack.title}</h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold text-white truncate">{currentTrack.title}</h4>
+                  {activeLoopRange && (
+                    <span className="text-[10px] font-mono text-signal-green bg-signal-green/10 border border-signal-green/30 px-1.5 py-0.5 rounded">
+                      CUT ACTIVE
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-zinc-400 truncate">{currentTrack.artist}</p>
               </div>
-              <div className="font-mono text-xs text-zinc-500">
+              <div className="font-mono text-xs text-zinc-500 shrink-0">
                 Total: {formatTimecode(safeDuration)}
               </div>
             </div>
@@ -229,7 +294,7 @@ export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
                   Start: {formatTimecode(startTime)}
                 </span>
                 <span className="text-white font-bold bg-white/10 px-2 py-0.5 rounded">
-                  Length: {cutDuration.toFixed(1)}s
+                  Cut Length: {cutDuration.toFixed(1)}s
                 </span>
                 <span className="text-signal-green font-semibold">
                   End: {formatTimecode(endTime)}
@@ -346,62 +411,78 @@ export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
                 60s Loop
               </button>
               <button
-                onClick={() => {
-                  setStartTime(0);
-                  setEndTime(safeDuration);
-                }}
+                onClick={handleResetFullSong}
                 className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs font-mono text-zinc-300 transition-colors flex items-center gap-1"
+                title="Restore full un-cut song"
               >
                 <RotateCcw size={11} />
                 Full Reset
               </button>
             </div>
 
+            {/* Notification Notice */}
+            {downloadNotice && (
+              <div className="mb-4 p-2.5 bg-signal-green/10 border border-signal-green/30 rounded text-xs font-mono text-signal-green flex items-center gap-2">
+                <Check size={14} className="shrink-0" />
+                <span>{downloadNotice}</span>
+              </div>
+            )}
+
             {/* Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-white/10">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-white/10">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Preview Cut Audio */}
                 <button
                   onClick={togglePreview}
-                  className="px-4 py-2.5 bg-signal-green hover:bg-signal-green-hover text-black font-semibold rounded-lg text-xs font-mono flex items-center gap-2 transition-all shadow-signal"
+                  className="px-3.5 py-2.5 bg-white/10 hover:bg-white/15 text-white font-medium rounded-lg text-xs font-mono flex items-center gap-2 transition-all border border-white/15"
                 >
                   {isPreviewPlaying ? <Pause size={14} /> : <Play size={14} />}
                   <span>{isPreviewPlaying ? 'Pause Cut' : 'Preview Cut'}</span>
                 </button>
 
+                {/* Apply Cut to Currently Playing Song */}
                 {onApplyLoop && (
                   <button
-                    onClick={() => {
-                      onApplyLoop(startTime, endTime);
-                      setIsLoopApplied(true);
-                      setTimeout(() => setIsLoopApplied(false), 3000);
-                    }}
-                    className={`px-4 py-2.5 rounded-lg text-xs font-mono flex items-center gap-2 transition-all border ${
+                    onClick={handleApplyCut}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-mono flex items-center gap-2 transition-all border font-semibold ${
                       isLoopApplied
-                        ? 'bg-signal-green text-black border-signal-green font-bold'
-                        : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
+                        ? 'bg-signal-green text-black border-signal-green shadow-signal'
+                        : 'bg-signal-green hover:bg-signal-green-hover text-black border-signal-green shadow-signal'
                     }`}
                   >
                     <Scissors size={14} />
-                    <span>{isLoopApplied ? 'Active Loop Set!' : 'Apply Cut to Song'}</span>
+                    <span>{isLoopApplied ? 'Cut Applied to Song!' : 'Cut & Loop Song'}</span>
                   </button>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Download / Export */}
+                <button
+                  onClick={handleDownloadWav}
+                  disabled={isDownloading}
+                  className="px-3.5 py-2.5 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-medium rounded-lg text-xs font-mono flex items-center gap-2 transition-all"
+                  title="Download sliced audio file"
+                >
+                  <Download size={14} />
+                  <span>{isDownloading ? 'Processing...' : 'Download Cut'}</span>
+                </button>
+
+                {/* Save to Library */}
                 <button
                   onClick={handleSaveSnippet}
                   disabled={isSaved}
-                  className="px-4 py-2.5 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-medium rounded-lg text-xs font-mono flex items-center gap-2 transition-all disabled:opacity-80"
+                  className="px-3.5 py-2.5 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-medium rounded-lg text-xs font-mono flex items-center gap-2 transition-all disabled:opacity-80"
                 >
                   {isSaved ? (
                     <>
                       <Check size={14} className="text-signal-green" />
-                      <span>Snippet Saved to Library</span>
+                      <span>Cut Saved to Library</span>
                     </>
                   ) : (
                     <>
-                      <Download size={14} />
-                      <span>Save Snippet</span>
+                      <Scissors size={14} />
+                      <span>Save as New Track</span>
                     </>
                   )}
                 </button>
