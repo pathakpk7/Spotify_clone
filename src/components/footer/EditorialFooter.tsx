@@ -17,20 +17,12 @@ export const EditorialFooter: React.FC = () => {
             </div>
           </div>
 
-          <p className="text-sm text-zinc-400 font-body leading-relaxed max-w-sm mb-6">
-            Engineered for uncompromising high-resolution local playback, studio equalization, and seamless streaming integrations with zero latency.
+          <p className="text-sm text-zinc-400 font-body leading-relaxed max-w-sm mb-4">
+            Engineered for high-resolution local playback, parametric equalization, and cloud streaming.
           </p>
-
-          <div className="flex flex-wrap gap-2 text-[11px] font-mono">
-            <span className="px-2.5 py-1 bg-black/60 border border-white/10 rounded text-signal-green flex items-center gap-1.5">
-              <Zap size={12} />
-              Web Audio DSP
-            </span>
-            <span className="px-2.5 py-1 bg-black/60 border border-white/10 rounded text-zinc-400 flex items-center gap-1.5">
-              <ShieldCheck size={12} />
-              Local IndexedDB Vault
-            </span>
-          </div>
+          <p className="text-xs text-zinc-500 font-mono">
+            Zero telemetry • Local client audio processing
+          </p>
         </div>
 
         {/* Links Column */}

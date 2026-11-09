@@ -14,7 +14,8 @@ import {
   Heart,
   Eye,
   Speaker,
-  Music
+  Music,
+  Scissors
 } from 'lucide-react';
 import { Track, VisualizerMode } from '../../types/music';
 
@@ -42,6 +43,7 @@ interface PlayerBarProps {
   onOpenEQ: () => void;
   onOpenLyrics: () => void;
   onOpenQueue: () => void;
+  onOpenCutter?: () => void;
 }
 
 export const PlayerBar: React.FC<PlayerBarProps> = ({
@@ -67,7 +69,8 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
   onToggleLike,
   onOpenEQ,
   onOpenLyrics,
-  onOpenQueue
+  onOpenQueue,
+  onOpenCutter
 }) => {
   const [hoverSeekTime, setHoverSeekTime] = useState<number | null>(null);
   const [hoverPercent, setHoverPercent] = useState<number>(0);
@@ -290,6 +293,17 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             {visualizerMode[0].toUpperCase()}
           </span>
         </button>
+
+        {/* Audio Clipper / Cutter Button */}
+        {onOpenCutter && (
+          <button
+            onClick={onOpenCutter}
+            className="p-2 text-zinc-400 hover:text-signal-green hover:bg-white/5 rounded transition-colors"
+            title="Cut & Loop Current Track"
+          >
+            <Scissors size={17} />
+          </button>
+        )}
 
         {/* EQ Modal Button */}
         <button

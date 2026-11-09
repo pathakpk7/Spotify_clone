@@ -21,6 +21,7 @@ import { LocalMusicDropzone } from './components/upload/LocalMusicDropzone';
 import { IntegrationsModal } from './components/integrations/IntegrationsModal';
 import { QueueDrawer } from './components/queue/QueueDrawer';
 import { EditorialFooter } from './components/footer/EditorialFooter';
+import { AudioCutterModal } from './components/cutter/AudioCutterModal';
 
 export const App: React.FC = () => {
   // State: Tracks & Playback
@@ -48,6 +49,7 @@ export const App: React.FC = () => {
   const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState<boolean>(false);
   const [isQueueOpen, setIsQueueOpen] = useState<boolean>(false);
+  const [isCutterOpen, setIsCutterOpen] = useState<boolean>(false);
 
   // State: Persistent Data
   const [playlists, setPlaylists] = useState<Playlist[]>(() => storageService.getPlaylists());
@@ -462,31 +464,30 @@ export const App: React.FC = () => {
       {/* Main Content Area */}
       <main className="flex-grow flex flex-col min-w-0 pb-32">
         {/* Top Header Bar */}
-        <header className="h-16 px-8 md:px-12 flex items-center justify-between border-b border-white/10 sticky top-0 bg-[#090a0d]/80 backdrop-blur-md z-20">
-          <div className="flex items-center gap-2 font-mono text-xs text-zinc-400">
-            <span className="uppercase text-zinc-500">Method 1 CDN Stream</span>
-            <span>/</span>
-            <span className="text-white font-semibold">
+        <header className="h-16 px-6 md:px-12 flex items-center justify-between border-b border-white/10 sticky top-0 bg-[#07080a]/85 backdrop-blur-md z-20">
+          <div className="flex items-center gap-3">
+            <span className="font-display font-bold text-sm tracking-tight text-white">
               {activeStationId && stationChannel
                 ? stationChannel.name
                 : activePlaylistId
                 ? playlists.find((p) => p.id === activePlaylistId)?.name || 'Playlist'
-                : activeView.toUpperCase()}
+                : activeView === 'feed'
+                ? 'Discover'
+                : activeView.charAt(0).toUpperCase() + activeView.slice(1)}
             </span>
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-mono text-zinc-400">
+          <div className="flex items-center gap-3 font-mono text-xs text-zinc-400">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-signal-green animate-pulse" />
-              <span className="hidden sm:inline">Zero Server Bandwidth • Live Stream</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-signal-green animate-pulse" />
+              <span className="text-zinc-400">Lossless Sonic Stream</span>
             </div>
           </div>
         </header>
 
-        {/* Hero Showcase with Live Canvas Visualizer Backdrop */}
+        {/* Hero Showcase with 3D Rotating Headphone & Heartbeat Wave */}
         {activeView === 'feed' && !activePlaylistId && !activeStationId && !searchQuery && (
           <div className="relative">
-            <AudioVisualizer mode={visualizerMode} isPlaying={isPlaying} />
             <HeroShowcase
               tracks={tracks}
               currentTrack={currentTrack}
@@ -496,6 +497,7 @@ export const App: React.FC = () => {
               onAddToQueue={handleAddToQueue}
               onToggleLike={handleToggleLike}
               onOpenUpload={() => setIsUploadOpen(true)}
+              onOpenCutter={() => setIsCutterOpen(true)}
             />
           </div>
         )}
@@ -536,16 +538,11 @@ export const App: React.FC = () => {
           <div className="p-8 md:p-12">
             <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-mono text-xs uppercase text-signal-green tracking-wider flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-signal-green animate-pulse" />
-                    {stationChannel.channelType === 'spotify' || stationChannel.spotifyPlaylistId ? 'Method 1 Spotify Bridge' : 'Method 1 Live Channel'}
+                <div className="flex items-center gap-2 mb-2 font-mono text-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-signal-green animate-pulse" />
+                  <span className="text-zinc-400 uppercase tracking-wider">
+                    {stationChannel.channelType === 'spotify' || stationChannel.spotifyPlaylistId ? 'Spotify Station' : 'Radio Stream'}
                   </span>
-                  {(stationChannel.playlistId || stationChannel.spotifyPlaylistId) && (
-                    <span className="font-mono text-[10px] text-zinc-400 uppercase px-1.5 py-0.5 bg-white/5 rounded border border-white/10">
-                      {stationChannel.channelType === 'spotify' || stationChannel.spotifyPlaylistId ? 'Spotify Connected' : 'YouTube Synced'}
-                    </span>
-                  )}
                 </div>
                 <h2 className="font-display font-extrabold text-3xl sm:text-4xl text-white mt-1 mb-2">
                   {stationChannel.name}
@@ -772,6 +769,18 @@ export const App: React.FC = () => {
         onOpenEQ={() => setIsEQOpen(true)}
         onOpenLyrics={() => setIsLyricsOpen(true)}
         onOpenQueue={() => setIsQueueOpen(true)}
+        onOpenCutter={() => setIsCutterOpen(true)}
+      />
+
+      {/* Precision Audio Cutter & Loop Modal */}
+      <AudioCutterModal
+        isOpen={isCutterOpen}
+        onClose={() => setIsCutterOpen(false)}
+        currentTrack={currentTrack}
+        currentTime={currentTime}
+        duration={duration}
+        onSeek={handleSeek}
+        onSaveSnippet={handleTrackUploaded}
       />
 
       {/* Studio Parametric Equalizer Modal */}
