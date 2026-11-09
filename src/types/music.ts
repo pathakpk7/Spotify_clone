@@ -50,3 +50,13 @@ export interface ServiceConnection {
     apiKey?: string;
   };
 }
+
+export interface StreamChannel {
+  id: string;
+  name: string;
+  description: string;
+  playlistId?: string;
+  tracks: Track[];
+  lastSynced?: number;
+}
+

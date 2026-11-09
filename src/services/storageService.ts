@@ -156,5 +156,26 @@ export const storageService = {
     } catch (e) {
       console.error(e);
     }
+  },
+
+  // Synced YouTube Station Channels
+  getSyncedChannels(): Record<string, Track[]> {
+    try {
+      const saved = localStorage.getItem('pulse_synced_channels');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return {};
+  },
+
+  saveSyncedChannel(channelId: string, tracks: Track[]) {
+    try {
+      const all = this.getSyncedChannels();
+      all[channelId] = tracks;
+      localStorage.setItem('pulse_synced_channels', JSON.stringify(all));
+    } catch (e) {
+      console.error(e);
+    }
   }
 };

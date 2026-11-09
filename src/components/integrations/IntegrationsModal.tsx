@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Youtube, CheckCircle2, Plus, ExternalLink, Music2 } from 'lucide-react';
-import { ServiceConnection, Track } from '../../types/music';
+import { X, Youtube, CheckCircle2, Plus, Music2, RefreshCw, Key } from 'lucide-react';
+import { ServiceConnection, Track, StreamChannel } from '../../types/music';
 import { storageService } from '../../services/storageService';
 import { youtubeService } from '../../services/youtubeService';
 import { spotifyService } from '../../services/spotifyService';
@@ -12,6 +12,7 @@ interface IntegrationsModalProps {
   connections: ServiceConnection;
   onConnectionsChange: (conn: ServiceConnection) => void;
   onTrackAdded: (track: Track) => void;
+  onChannelAdded?: (channel: StreamChannel) => void;
 }
 
 export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
@@ -19,12 +20,16 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
   onClose,
   connections,
   onConnectionsChange,
-  onTrackAdded
+  onTrackAdded,
+  onChannelAdded
 }) => {
-  const [activeTab, setActiveTab] = useState<'spotify' | 'youtube'>('spotify');
+  const [activeTab, setActiveTab] = useState<'spotify' | 'youtube' | 'settings'>('youtube');
   const [spotifyUrl, setSpotifyUrl] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [youtubeTitle, setYoutubeTitle] = useState('');
+  const [playlistUrl, setPlaylistUrl] = useState('');
+  const [playlistStationName, setPlaylistStationName] = useState('');
+  const [apiKeyInput, setApiKeyInput] = useState(connections.youtube?.apiKey || '');
   const [isLoading, setIsLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
@@ -63,12 +68,61 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
       onTrackAdded(track);
       setYoutubeUrl('');
       setYoutubeTitle('');
-      setStatusMsg(`Added "${track.title}" from YouTube Music!`);
+      setStatusMsg(`Added "${track.title}" from YouTube!`);
       setTimeout(() => setStatusMsg(null), 3000);
     } else {
       setStatusMsg('Invalid YouTube URL or ID. Try format https://youtu.be/... or watch?v=...');
       setTimeout(() => setStatusMsg(null), 3500);
     }
+  };
+
+  const handleImportPlaylist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!playlistUrl.trim()) return;
+
+    setIsLoading(true);
+    setStatusMsg('Extracting playlist tracks from YouTube live...');
+
+    const res = await youtubeService.fetchPlaylistDetails(playlistUrl.trim());
+    setIsLoading(false);
+
+    if (res && res.tracks.length > 0) {
+      const channel: StreamChannel = {
+        id: `channel-${res.playlistId}`,
+        name: playlistStationName.trim() || res.title,
+        description: `Live synced playlist (${res.tracks.length} tracks)`,
+        playlistId: res.playlistId,
+        tracks: res.tracks,
+        lastSynced: Date.now()
+      };
+
+      if (onChannelAdded) {
+        onChannelAdded(channel);
+      }
+      setPlaylistUrl('');
+      setPlaylistStationName('');
+      setStatusMsg(`Imported "${channel.name}" with ${res.tracks.length} tracks!`);
+      setTimeout(() => setStatusMsg(null), 4000);
+    } else {
+      setStatusMsg('Could not fetch playlist. Verify the playlist is Public or Unlisted.');
+      setTimeout(() => setStatusMsg(null), 4000);
+    }
+  };
+
+  const handleSaveApiKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated: ServiceConnection = {
+      ...connections,
+      youtube: {
+        ...connections.youtube,
+        isConnected: Boolean(apiKeyInput.trim()),
+        apiKey: apiKeyInput.trim()
+      }
+    };
+    onConnectionsChange(updated);
+    storageService.saveConnections(updated);
+    setStatusMsg('YouTube Data API key saved successfully!');
+    setTimeout(() => setStatusMsg(null), 3000);
   };
 
   return (
@@ -80,13 +134,13 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-xl bg-[#111317] border border-white/10 rounded-lg p-6 shadow-2xl flex flex-col"
+            className="w-full max-w-xl bg-[#111317] border border-white/10 rounded-lg p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto"
           >
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
               <div>
-                <h3 className="font-display font-bold text-lg text-white">Streaming Bridge</h3>
-                <p className="text-xs font-mono text-zinc-400">Import Real Spotify & YouTube Audio Streams</p>
+                <h3 className="font-display font-bold text-lg text-white">Streaming & Playlist Sync</h3>
+                <p className="text-xs font-mono text-zinc-400">Headless CDN Streaming & YouTube Live Sync</p>
               </div>
               <button
                 onClick={onClose}
@@ -99,40 +153,129 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
             {/* Service Tabs */}
             <div className="flex items-center gap-2 border-b border-white/10 pb-4 mb-6">
               <button
+                onClick={() => setActiveTab('youtube')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono font-medium transition-all ${
+                  activeTab === 'youtube'
+                    ? 'bg-red-600 text-white font-semibold'
+                    : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Youtube size={14} />
+                YouTube Playlist / Track
+              </button>
+
+              <button
                 onClick={() => setActiveTab('spotify')}
-                className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-mono font-medium transition-all ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono font-medium transition-all ${
                   activeTab === 'spotify'
                     ? 'bg-signal-green text-black font-semibold'
                     : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <Music2 size={14} />
-                Spotify URL Import
+                Spotify Track
               </button>
 
               <button
-                onClick={() => setActiveTab('youtube')}
-                className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-mono font-medium transition-all ${
-                  activeTab === 'youtube'
-                    ? 'bg-red-500 text-white font-semibold'
+                onClick={() => setActiveTab('settings')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono font-medium transition-all ${
+                  activeTab === 'settings'
+                    ? 'bg-zinc-700 text-white font-semibold'
                     : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'
                 }`}
               >
-                <Youtube size={14} />
-                YouTube Music Stream
+                <Key size={14} />
+                Live API Key
               </button>
             </div>
+
+            {/* YouTube Tab */}
+            {activeTab === 'youtube' && (
+              <div className="space-y-6">
+                {/* 1. Import Full Playlist */}
+                <form onSubmit={handleImportPlaylist} className="p-4 bg-black/40 border border-white/10 rounded-md space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-mono text-zinc-300 font-semibold flex items-center gap-1.5">
+                      <RefreshCw size={12} className="text-red-400" />
+                      Import & Sync Full YouTube Playlist:
+                    </label>
+                    <span className="text-[10px] font-mono text-signal-green uppercase">Method 1 CDN</span>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={playlistUrl}
+                    onChange={(e) => setPlaylistUrl(e.target.value)}
+                    placeholder="https://youtube.com/playlist?list=PL..."
+                    className="w-full bg-black/60 border border-white/15 rounded px-3 py-2 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-red-500"
+                  />
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={playlistStationName}
+                      onChange={(e) => setPlaylistStationName(e.target.value)}
+                      placeholder="Custom Station Name (e.g. Punjabi Vibes)"
+                      className="flex-grow bg-black/60 border border-white/10 rounded px-3 py-1.5 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-white/30"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white font-semibold rounded text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      <Plus size={14} />
+                      {isLoading ? 'Syncing...' : 'Add Station'}
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-500 font-body leading-normal">
+                    Paste any YouTube playlist link. The station becomes permanently playable and supports one-click live updating whenever you add songs to it on YouTube.
+                  </p>
+                </form>
+
+                {/* 2. Import Single Song */}
+                <form onSubmit={handleAddYoutubeLink} className="p-4 bg-black/20 border border-white/10 rounded-md space-y-3">
+                  <label className="block text-xs font-mono text-zinc-300 font-semibold">
+                    Or Import Single YouTube Track:
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=... or youtu.be/..."
+                      className="flex-grow bg-black/60 border border-white/15 rounded px-3 py-2 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-red-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-semibold rounded text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
+                      <Plus size={14} />
+                      Add Track
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={youtubeTitle}
+                    onChange={(e) => setYoutubeTitle(e.target.value)}
+                    placeholder="Custom Track Title (Optional)"
+                    className="w-full bg-black/60 border border-white/10 rounded px-3 py-1.5 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-white/30"
+                  />
+                </form>
+              </div>
+            )}
 
             {/* Spotify Tab */}
             {activeTab === 'spotify' && (
               <form onSubmit={handleAddSpotifyTrack} className="space-y-4">
                 <div className="p-4 bg-black/40 border border-white/10 rounded-md">
-                  <label className="block text-xs font-mono text-zinc-300 mb-2">
-                    Paste Any Spotify Track / Album / Playlist Link:
+                  <label className="block text-xs font-mono text-zinc-300 mb-2 font-semibold">
+                    Paste Public Spotify Song Link:
                   </label>
                   <div className="flex gap-2">
                     <input
-                      type="url"
+                      type="text"
                       value={spotifyUrl}
                       onChange={(e) => setSpotifyUrl(e.target.value)}
                       placeholder="https://open.spotify.com/track/..."
@@ -155,46 +298,32 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
               </form>
             )}
 
-            {/* YouTube Tab */}
-            {activeTab === 'youtube' && (
-              <form onSubmit={handleAddYoutubeLink} className="space-y-4">
+            {/* Settings / API Key Tab */}
+            {activeTab === 'settings' && (
+              <form onSubmit={handleSaveApiKey} className="space-y-4">
                 <div className="p-4 bg-black/40 border border-white/10 rounded-md space-y-3">
                   <div>
-                    <label className="block text-xs font-mono text-zinc-300 mb-1">
-                      Paste YouTube or YouTube Music URL:
+                    <label className="block text-xs font-mono text-zinc-300 mb-1 font-semibold">
+                      Google / YouTube Data API v3 Key (Optional):
                     </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={youtubeUrl}
-                        onChange={(e) => setYoutubeUrl(e.target.value)}
-                        placeholder="https://www.youtube.com/watch?v=... or youtu.be/..."
-                        className="flex-grow bg-black/60 border border-white/15 rounded px-3 py-2 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-red-500"
-                      />
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-semibold rounded text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                      >
-                        <Plus size={14} />
-                        {isLoading ? 'Fetching...' : 'Add Track'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
+                    <p className="text-[11px] text-zinc-400 mb-2 font-body leading-relaxed">
+                      By default, Pulse uses automatic public CORS proxies. Adding a free YouTube API key allows 100% direct, high-speed syncing without any rate limits.
+                    </p>
                     <input
                       type="text"
-                      value={youtubeTitle}
-                      onChange={(e) => setYoutubeTitle(e.target.value)}
-                      placeholder="Custom Display Title (Optional)"
-                      className="w-full bg-black/60 border border-white/10 rounded px-3 py-1.5 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-white/30"
+                      value={apiKeyInput}
+                      onChange={(e) => setApiKeyInput(e.target.value)}
+                      placeholder="AIzaSy..."
+                      className="w-full bg-black/60 border border-white/15 rounded px-3 py-2 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-signal-green"
                     />
                   </div>
-                </div>
 
-                <div className="p-3 bg-white/5 border border-white/5 rounded text-xs text-zinc-400 leading-relaxed font-body">
-                  Input any YouTube or YouTube Music track link. Pulse queries YouTube's real metadata and streams real audio with waveform visualizers.
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-signal-green hover:bg-signal-green-hover text-black font-semibold rounded text-xs font-mono flex items-center gap-1.5 transition-colors"
+                  >
+                    Save API Key
+                  </button>
                 </div>
               </form>
             )}

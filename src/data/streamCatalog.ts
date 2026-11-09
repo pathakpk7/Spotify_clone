@@ -1,12 +1,13 @@
-import { Track } from '../types/music';
+import { Track, StreamChannel } from '../types/music';
 
 // Curated live streaming audio tracks (Method 1: Headless YouTube CDN Stream)
 // 0 MB stored on server, full-length audio streamed on-demand at zero bandwidth cost
-export const STREAM_CHANNELS: { id: string; name: string; description: string; tracks: Track[] }[] = [
+export const STREAM_CHANNELS: StreamChannel[] = [
   {
     "id": "channel-PLjxsdvPZH24OZoxZSnuEqrW1crVtceCNG",
     "name": "All Out 00's Hindi",
     "description": "Imported playlist (25 tracks)",
+    "playlistId": "PLjxsdvPZH24OZoxZSnuEqrW1crVtceCNG",
     "tracks": [
       {
         "id": "yt-7KKVb0_IdD4",
@@ -312,8 +313,9 @@ export const STREAM_CHANNELS: { id: string; name: string; description: string; t
   },
   {
     "id": "channel-PLFSnZqmWDXw7iBoAdtfOJygzLSMGLZmto",
-    "name": "🔥🔥🔥",
+    "name": "🔥🔥🔥 (Desi Rap & High Energy)",
     "description": "Imported playlist (51 tracks)",
+    "playlistId": "PLFSnZqmWDXw7iBoAdtfOJygzLSMGLZmto",
     "tracks": [
       {
         "id": "yt-GL-I62QkEOs",
@@ -931,8 +933,9 @@ export const STREAM_CHANNELS: { id: string; name: string; description: string; t
   },
   {
     "id": "channel-PLFSnZqmWDXw5NzQ0vaY2QKfDu73GE7Mtq",
-    "name": "Punjabi",
+    "name": "Punjabi Hits",
     "description": "Imported playlist (25 tracks)",
+    "playlistId": "PLFSnZqmWDXw5NzQ0vaY2QKfDu73GE7Mtq",
     "tracks": [
       {
         "id": "yt-36CsRoNqu80",
@@ -1240,6 +1243,7 @@ export const STREAM_CHANNELS: { id: string; name: string; description: string; t
     "id": "channel-PLf6P0vZ1IayOPSSTanl2tLMvneBEZv9bK",
     "name": "Hindi Motivation songs",
     "description": "Imported playlist (25 tracks)",
+    "playlistId": "PLf6P0vZ1IayOPSSTanl2tLMvneBEZv9bK",
     "tracks": [
       {
         "id": "yt-cF2yqyiJACk",
@@ -1547,6 +1551,7 @@ export const STREAM_CHANNELS: { id: string; name: string; description: string; t
     "id": "channel-PLl-oZeBw812PS9ORlu9dxYJtFGV0aZYm0",
     "name": "Himesh Reshammiya Songs Playlist",
     "description": "Imported playlist (10 tracks)",
+    "playlistId": "PLl-oZeBw812PS9ORlu9dxYJtFGV0aZYm0",
     "tracks": [
       {
         "id": "yt-5_RPwBOL03s",

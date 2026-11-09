@@ -13,10 +13,11 @@ import {
   Moon,
   Sparkles
 } from 'lucide-react';
-import { Playlist, ServiceConnection } from '../../types/music';
+import { Playlist, ServiceConnection, StreamChannel } from '../../types/music';
 import { STREAM_CHANNELS } from '../../data/streamCatalog';
 
 interface SidebarProps {
+  channels?: StreamChannel[];
   activeView: string;
   setActiveView: (view: string) => void;
   searchQuery: string;
@@ -33,6 +34,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
+  channels = STREAM_CHANNELS,
   activeView,
   setActiveView,
   searchQuery,
@@ -136,7 +138,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 px-3 mb-2">
           Radio Stations (Method 1)
         </span>
-        {STREAM_CHANNELS.map((channel) => {
+        {channels.map((channel) => {
           const isSelected = activeStationId === channel.id;
           return (
             <button

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Play, RefreshCw, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { audioEngine } from './services/audioEngine';
 import { youtubePlayer } from './services/youtubePlayer';
+import { youtubeService } from './services/youtubeService';
 import { storageService } from './services/storageService';
 import { INITIAL_TRACKS } from './data/defaultCatalog';
 import { STREAM_CHANNELS } from './data/streamCatalog';
-import { Track, Playlist, VisualizerMode, ServiceConnection, LyricLine } from './types/music';
+import { Track, Playlist, VisualizerMode, ServiceConnection, LyricLine, StreamChannel } from './types/music';
 
 // Components
 import { Sidebar } from './components/sidebar/Sidebar';
@@ -49,6 +51,19 @@ export const App: React.FC = () => {
   // State: Persistent Data
   const [playlists, setPlaylists] = useState<Playlist[]>(() => storageService.getPlaylists());
   const [connections, setConnections] = useState<ServiceConnection>(() => storageService.getConnections());
+  const [channels, setChannels] = useState<StreamChannel[]>(() => {
+    const cached = storageService.getSyncedChannels();
+    return STREAM_CHANNELS.map((ch) => {
+      if (cached[ch.id] && cached[ch.id].length > 0) {
+        return { ...ch, tracks: cached[ch.id] };
+      }
+      return ch;
+    });
+  });
+
+  // State: Live Station Sync
+  const [isSyncingStation, setIsSyncingStation] = useState<boolean>(false);
+  const [stationSyncStatus, setStationSyncStatus] = useState<string | null>(null);
 
   const currentTrack = queue[currentTrackIndex] || tracks[0];
 
@@ -334,8 +349,55 @@ export const App: React.FC = () => {
 
   // Station Filtered Tracks
   const stationChannel = useMemo(() => {
-    return STREAM_CHANNELS.find((c) => c.id === activeStationId);
-  }, [activeStationId]);
+    return channels.find((c) => c.id === activeStationId);
+  }, [channels, activeStationId]);
+
+  // Sync Station Tracks Live with YouTube
+  const handleSyncStation = async (channelId: string) => {
+    const ch = channels.find((c) => c.id === channelId);
+    if (!ch || !ch.playlistId) return;
+
+    setIsSyncingStation(true);
+    setStationSyncStatus('Checking YouTube for new tracks...');
+
+    try {
+      const liveTracks = await youtubeService.syncPlaylistLive(ch.playlistId);
+      if (liveTracks.length > 0) {
+        const existingIds = new Set(ch.tracks.map((t) => t.youtubeId || t.id));
+        const newTracks = liveTracks.filter((t) => !existingIds.has(t.youtubeId || t.id));
+
+        const updatedTracks = [...newTracks, ...ch.tracks];
+        setChannels((prev) =>
+          prev.map((c) => (c.id === channelId ? { ...c, tracks: updatedTracks, lastSynced: Date.now() } : c))
+        );
+        storageService.saveSyncedChannel(channelId, updatedTracks);
+
+        if (newTracks.length > 0) {
+          setTracks((prev) => [...newTracks, ...prev]);
+          setStationSyncStatus(`Synced! Added ${newTracks.length} new song${newTracks.length > 1 ? 's' : ''}`);
+        } else {
+          setStationSyncStatus(`All ${updatedTracks.length} tracks are up to date with YouTube`);
+        }
+      } else {
+        setStationSyncStatus('Station is up to date with YouTube');
+      }
+    } catch (e) {
+      console.warn('Sync failed:', e);
+      setStationSyncStatus('Could not sync with YouTube at this time');
+    } finally {
+      setIsSyncingStation(false);
+      setTimeout(() => setStationSyncStatus(null), 4000);
+    }
+  };
+
+  // Add Entire Channel Station (e.g. from YouTube Playlist URL in Integrations Modal)
+  const handleChannelAdded = (newChannel: StreamChannel) => {
+    setChannels((prev) => [newChannel, ...prev]);
+    storageService.saveSyncedChannel(newChannel.id, newChannel.tracks);
+    setTracks((prev) => [...newChannel.tracks, ...prev]);
+    setActiveStationId(newChannel.id);
+    setActiveView('station');
+  };
 
   // Display tracks calculation
   const displayTracks = useMemo(() => {
@@ -361,6 +423,7 @@ export const App: React.FC = () => {
     <div className="flex min-h-screen bg-canvas text-white font-body selection:bg-signal-green selection:text-black">
       {/* Sidebar Navigation */}
       <Sidebar
+        channels={channels}
         activeView={activeView}
         setActiveView={setActiveView}
         searchQuery={searchQuery}
@@ -449,19 +512,83 @@ export const App: React.FC = () => {
             </div>
           </div>
         ) : activeStationId && stationChannel ? (
-          /* Station View (Deluxe Salon Style) */
+          /* Station View (Deluxe Salon Style with Live YouTube Sync) */
           <div className="p-8 md:p-12">
-            <div className="mb-8">
-              <span className="font-mono text-xs uppercase text-signal-green tracking-wider">
-                Radio Stream Channel
-              </span>
-              <h2 className="font-display font-extrabold text-3xl sm:text-4xl text-white mt-1 mb-2">
-                {stationChannel.name}
-              </h2>
-              <p className="text-sm font-body text-zinc-400">
-                {stationChannel.description}
-              </p>
+            <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-mono text-xs uppercase text-signal-green tracking-wider flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-signal-green animate-pulse" />
+                    Method 1 Live Channel
+                  </span>
+                  {stationChannel.playlistId && (
+                    <span className="font-mono text-[10px] text-zinc-400 uppercase px-1.5 py-0.5 bg-white/5 rounded border border-white/10">
+                      YouTube Synced
+                    </span>
+                  )}
+                </div>
+                <h2 className="font-display font-extrabold text-3xl sm:text-4xl text-white mt-1 mb-2">
+                  {stationChannel.name}
+                </h2>
+                <p className="text-sm font-body text-zinc-400 max-w-2xl">
+                  {stationChannel.description}
+                </p>
+                <div className="flex items-center gap-3 mt-3 text-xs font-mono text-zinc-500">
+                  <span>{stationChannel.tracks.length} Tracks Available</span>
+                  <span>•</span>
+                  <span>Headless Zero-Bandwidth Stream</span>
+                </div>
+              </div>
+
+              {/* Station Action Controls */}
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <button
+                  onClick={() => {
+                    if (stationChannel.tracks.length > 0) {
+                      setQueue(stationChannel.tracks);
+                      setCurrentTrackIndex(0);
+                      handlePlayTrack(stationChannel.tracks[0]);
+                    }
+                  }}
+                  className="px-4 py-2 bg-signal-green hover:bg-signal-green-hover text-black font-semibold text-xs font-mono rounded flex items-center gap-2 transition-all shadow-lg shadow-signal-green/10"
+                >
+                  <Play size={14} className="fill-black" />
+                  <span>Play All Tracks</span>
+                </button>
+
+                {stationChannel.playlistId && (
+                  <button
+                    onClick={() => handleSyncStation(stationChannel.id)}
+                    disabled={isSyncingStation}
+                    className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/15 text-white font-mono text-xs rounded flex items-center gap-2 transition-all disabled:opacity-50"
+                    title="Check YouTube for new songs and auto-sync them directly"
+                  >
+                    <RefreshCw size={13} className={`text-red-400 ${isSyncingStation ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingStation ? 'Syncing...' : 'Sync from YouTube'}</span>
+                  </button>
+                )}
+
+                {stationChannel.playlistId && (
+                  <a
+                    href={`https://youtube.com/playlist?list=${stationChannel.playlistId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-400 hover:text-white rounded transition-colors"
+                    title="Open playlist on YouTube"
+                  >
+                    <ExternalLink size={14} />
+                  </a>
+                )}
+              </div>
             </div>
+
+            {/* Live Station Sync Status Message */}
+            {stationSyncStatus && (
+              <div className="mb-6 p-3 bg-white/5 border border-white/15 rounded flex items-center gap-2 text-xs font-mono text-zinc-300">
+                <CheckCircle2 size={15} className="text-signal-green shrink-0" />
+                <span>{stationSyncStatus}</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
               {stationChannel.tracks.map((track) => (
@@ -614,6 +741,7 @@ export const App: React.FC = () => {
         connections={connections}
         onConnectionsChange={setConnections}
         onTrackAdded={handleTrackUploaded}
+        onChannelAdded={handleChannelAdded}
       />
 
       {/* Queue Drawer */}
