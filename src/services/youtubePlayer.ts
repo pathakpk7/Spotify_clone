@@ -110,6 +110,7 @@ class YouTubePlayerService {
             this.isReady = true;
             event.target.playVideo();
             this.startTimeUpdates();
+            if (this.onStateChange) this.onStateChange(true);
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           onStateChange: (event: any) => {
@@ -141,20 +142,30 @@ class YouTubePlayerService {
       this.player.loadVideoById(videoId);
       this.player.playVideo();
       this.startTimeUpdates();
+      if (this.onStateChange) this.onStateChange(true);
     }
   }
 
-  public play() {
-    if (this.player && this.isReady && typeof this.player.playVideo === 'function') {
+  public play(fallbackVideoId?: string) {
+    if (!this.player || !this.isReady) {
+      const vid = fallbackVideoId || this.pendingVideoId;
+      if (vid) {
+        this.playVideo(vid);
+      }
+      return;
+    }
+    if (typeof this.player.playVideo === 'function') {
       this.player.playVideo();
       this.startTimeUpdates();
+      if (this.onStateChange) this.onStateChange(true);
     }
   }
 
   public pause() {
-    if (this.player && this.isReady && typeof this.player.pauseVideo === 'function') {
+    if (this.player && typeof this.player.pauseVideo === 'function') {
       this.player.pauseVideo();
       this.stopTimeUpdates();
+      if (this.onStateChange) this.onStateChange(false);
     }
   }
 

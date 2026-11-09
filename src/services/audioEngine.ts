@@ -98,9 +98,19 @@ class AudioEngine {
       await this.audioCtx.resume();
     }
 
-    if (src && this.audio.src !== src) {
-      this.audio.src = src;
-      this.audio.load();
+    if (src) {
+      try {
+        const resolvedSrc = new URL(src, window.location.href).href;
+        if (this.audio.src !== resolvedSrc) {
+          this.audio.src = src;
+          this.audio.load();
+        }
+      } catch {
+        if (this.audio.src !== src) {
+          this.audio.src = src;
+          this.audio.load();
+        }
+      }
     }
 
     try {

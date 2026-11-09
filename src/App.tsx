@@ -202,15 +202,30 @@ export const App: React.FC = () => {
       } else {
         audioEngine.pause();
       }
+      setIsPlaying(false);
     } else {
       if (currentTrack.source === 'youtube' && currentTrack.youtubeId) {
         audioEngine.pause();
-        youtubePlayer.play();
+        youtubePlayer.playVideo(currentTrack.youtubeId);
       } else {
         youtubePlayer.pause();
         audioEngine.play(currentTrack.src);
       }
+      setIsPlaying(true);
     }
+  };
+
+  // Shuffle Queue (Fisher-Yates shuffle keeping current track at head)
+  const handleShuffleQueue = () => {
+    if (queue.length <= 1) return;
+    const current = queue[currentTrackIndex];
+    const rest = queue.filter((_, i) => i !== currentTrackIndex);
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+    setQueue([current, ...rest]);
+    setCurrentTrackIndex(0);
   };
 
   const handleNext = () => {
@@ -266,7 +281,13 @@ export const App: React.FC = () => {
   };
 
   const handleToggleShuffle = () => {
-    setIsShuffled((prev) => !prev);
+    setIsShuffled((prev) => {
+      const next = !prev;
+      if (next) {
+        handleShuffleQueue();
+      }
+      return next;
+    });
   };
 
   const handleToggleRepeat = () => {
@@ -536,10 +557,12 @@ export const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3 font-mono text-xs text-zinc-400">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-signal-green animate-pulse" />
-              <span className="text-zinc-400">Lossless Sonic Stream</span>
-            </div>
+            {isPlaying && (
+              <div className="flex items-center gap-2 text-zinc-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-signal-green animate-pulse" />
+                <span>Playing</span>
+              </div>
+            )}
           </div>
         </header>
 
@@ -895,6 +918,7 @@ export const App: React.FC = () => {
         }}
         onRemoveTrack={handleRemoveFromQueue}
         onClearQueue={handleClearQueue}
+        onShuffleQueue={handleShuffleQueue}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Trash2, ListMusic, Disc } from 'lucide-react';
+import { X, Play, Trash2, ListMusic, Disc, Shuffle } from 'lucide-react';
 import { Track } from '../../types/music';
 
 interface QueueDrawerProps {
@@ -11,6 +11,7 @@ interface QueueDrawerProps {
   onSelectTrack: (index: number) => void;
   onRemoveTrack: (index: number) => void;
   onClearQueue: () => void;
+  onShuffleQueue?: () => void;
 }
 
 export const QueueDrawer: React.FC<QueueDrawerProps> = ({
@@ -20,7 +21,8 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
   currentTrackIndex,
   onSelectTrack,
   onRemoveTrack,
-  onClearQueue
+  onClearQueue,
+  onShuffleQueue
 }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -59,6 +61,16 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {queue.length > 1 && onShuffleQueue && (
+                  <button
+                    onClick={onShuffleQueue}
+                    title="Shuffle Queue"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-mono text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                  >
+                    <Shuffle size={14} className="text-signal-green" />
+                    <span>Shuffle</span>
+                  </button>
+                )}
                 {queue.length > 0 && (
                   <button
                     onClick={onClearQueue}

@@ -42,22 +42,14 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
         
         {/* Left Column: Minimal Sculptural Editorial Typography */}
         <div className="lg:col-span-6 flex flex-col justify-center">
-          {/* Subtle Live Audio Indicator */}
-          <div className="flex items-center gap-2 mb-4">
-            <span className="w-2 h-2 rounded-full bg-signal-green animate-pulse" />
-            <span className="font-mono text-xs uppercase tracking-widest text-zinc-400">
-              {isPlaying ? 'Acoustic Stream Active' : 'Standby // Studio Master'}
-            </span>
-          </div>
-
-          {/* Main Title: Bold, Expressive, Human-Designed */}
+          {/* Main Title */}
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="font-display font-extrabold text-4xl sm:text-6xl lg:text-7xl tracking-tight text-white leading-[1.04] mb-3"
+            className="font-display font-extrabold text-4xl sm:text-6xl lg:text-7xl tracking-tight text-white leading-[1.04] mb-4"
           >
-            Sonic Engine
+            Featured Track
           </motion.h1>
 
           {/* Featured Song Title & Artist */}
