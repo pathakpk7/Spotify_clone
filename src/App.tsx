@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { audioEngine } from './services/audioEngine';
+import { youtubePlayer } from './services/youtubePlayer';
 import { storageService } from './services/storageService';
 import { INITIAL_TRACKS } from './data/defaultCatalog';
+import { STREAM_CHANNELS } from './data/streamCatalog';
 import { Track, Playlist, VisualizerMode, ServiceConnection, LyricLine } from './types/music';
 
 // Components
@@ -35,6 +37,7 @@ export const App: React.FC = () => {
   const [activeView, setActiveView] = useState<string>('feed');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
+  const [activeStationId, setActiveStationId] = useState<string | null>(null);
 
   // State: Modals
   const [isEQOpen, setIsEQOpen] = useState<boolean>(false);
@@ -53,8 +56,8 @@ export const App: React.FC = () => {
   useEffect(() => {
     storageService.loadCustomTracks().then((customTracks) => {
       if (customTracks.length > 0) {
-        setTracks((prev) => [...prev, ...customTracks]);
-        setQueue((prev) => [...prev, ...customTracks]);
+        setTracks((prev) => [...customTracks, ...prev]);
+        setQueue((prev) => [...customTracks, ...prev]);
       }
     });
 
@@ -65,26 +68,58 @@ export const App: React.FC = () => {
     );
   }, []);
 
-  // Connect AudioEngine Callbacks
+  // Connect AudioEngine & YouTube Headless Callbacks
   useEffect(() => {
+    // HTML5 Audio Engine Callbacks
     audioEngine.onTimeUpdate = (time, dur) => {
-      setCurrentTime(time);
-      if (dur > 0) setDuration(dur);
+      if (currentTrack.source !== 'youtube') {
+        setCurrentTime(time);
+        if (dur > 0) setDuration(dur);
+      }
     };
 
     audioEngine.onStateChange = (playing) => {
-      setIsPlaying(playing);
+      if (currentTrack.source !== 'youtube') {
+        setIsPlaying(playing);
+      }
     };
 
     audioEngine.onEnded = () => {
-      if (isRepeating) {
-        audioEngine.seek(0);
-        audioEngine.play();
-      } else {
-        handleNext();
+      if (currentTrack.source !== 'youtube') {
+        if (isRepeating) {
+          audioEngine.seek(0);
+          audioEngine.play();
+        } else {
+          handleNext();
+        }
       }
     };
-  }, [isRepeating, currentTrackIndex, queue.length, isShuffled]);
+
+    // YouTube Headless Player Callbacks (Method 1)
+    youtubePlayer.onTimeUpdate = (time, dur) => {
+      if (currentTrack.source === 'youtube') {
+        setCurrentTime(time);
+        if (dur > 0) setDuration(dur);
+      }
+    };
+
+    youtubePlayer.onStateChange = (playing) => {
+      if (currentTrack.source === 'youtube') {
+        setIsPlaying(playing);
+      }
+    };
+
+    youtubePlayer.onEnded = () => {
+      if (currentTrack.source === 'youtube') {
+        if (isRepeating) {
+          youtubePlayer.seekTo(0);
+          youtubePlayer.play();
+        } else {
+          handleNext();
+        }
+      }
+    };
+  }, [isRepeating, currentTrackIndex, queue.length, isShuffled, currentTrack]);
 
   // Audio Playback Handlers
   const handlePlayTrack = (track: Track) => {
@@ -96,18 +131,30 @@ export const App: React.FC = () => {
       setCurrentTrackIndex(0);
     }
 
-    if (track.source !== 'youtube') {
-      audioEngine.play(track.src);
+    if (track.source === 'youtube' && track.youtubeId) {
+      audioEngine.pause();
+      youtubePlayer.playVideo(track.youtubeId);
     } else {
-      setIsPlaying(true);
+      youtubePlayer.pause();
+      audioEngine.play(track.src);
     }
   };
 
   const handleTogglePlay = () => {
     if (isPlaying) {
-      audioEngine.pause();
+      if (currentTrack.source === 'youtube') {
+        youtubePlayer.pause();
+      } else {
+        audioEngine.pause();
+      }
     } else {
-      audioEngine.play(currentTrack.src);
+      if (currentTrack.source === 'youtube' && currentTrack.youtubeId) {
+        audioEngine.pause();
+        youtubePlayer.play();
+      } else {
+        youtubePlayer.pause();
+        audioEngine.play(currentTrack.src);
+      }
     }
   };
 
@@ -120,32 +167,47 @@ export const App: React.FC = () => {
       nextIdx = (currentTrackIndex + 1) % queue.length;
     }
     setCurrentTrackIndex(nextIdx);
-    if (queue[nextIdx].source !== 'youtube') {
-      audioEngine.play(queue[nextIdx].src);
+    const nextTrack = queue[nextIdx];
+    if (nextTrack.source === 'youtube' && nextTrack.youtubeId) {
+      audioEngine.pause();
+      youtubePlayer.playVideo(nextTrack.youtubeId);
+    } else {
+      youtubePlayer.pause();
+      audioEngine.play(nextTrack.src);
     }
   };
 
   const handlePrev = () => {
     if (currentTime > 3) {
-      audioEngine.seek(0);
+      handleSeek(0);
       return;
     }
     if (queue.length === 0) return;
     const prevIdx = (currentTrackIndex - 1 + queue.length) % queue.length;
     setCurrentTrackIndex(prevIdx);
-    if (queue[prevIdx].source !== 'youtube') {
-      audioEngine.play(queue[prevIdx].src);
+    const prevTrack = queue[prevIdx];
+    if (prevTrack.source === 'youtube' && prevTrack.youtubeId) {
+      audioEngine.pause();
+      youtubePlayer.playVideo(prevTrack.youtubeId);
+    } else {
+      youtubePlayer.pause();
+      audioEngine.play(prevTrack.src);
     }
   };
 
   const handleSeek = (time: number) => {
     setCurrentTime(time);
-    audioEngine.seek(time);
+    if (currentTrack.source === 'youtube') {
+      youtubePlayer.seekTo(time);
+    } else {
+      audioEngine.seek(time);
+    }
   };
 
   const handleVolumeChange = (vol: number) => {
     setVolume(vol);
     audioEngine.setVolume(vol);
+    youtubePlayer.setVolume(vol);
   };
 
   const handleToggleShuffle = () => {
@@ -270,31 +332,18 @@ export const App: React.FC = () => {
     );
   }, [tracks, searchQuery]);
 
-  // Real categorizations
-  const localWorkspaceTracks = useMemo(
-    () => tracks.filter((t) => t.source === 'local'),
-    [tracks]
-  );
+  // Station Filtered Tracks
+  const stationChannel = useMemo(() => {
+    return STREAM_CHANNELS.find((c) => c.id === activeStationId);
+  }, [activeStationId]);
 
-  const importedTracks = useMemo(
-    () => tracks.filter((t) => t.source === 'upload'),
-    [tracks]
-  );
-
-  const streamingTracks = useMemo(
-    () => tracks.filter((t) => t.source === 'spotify' || t.source === 'youtube'),
-    [tracks]
-  );
-
-  const likedTracks = useMemo(
-    () => tracks.filter((t) => t.isLiked),
-    [tracks]
-  );
-
-  // Playlist Filtered Tracks
+  // Display tracks calculation
   const displayTracks = useMemo(() => {
+    if (activeStationId && stationChannel) {
+      return stationChannel.tracks;
+    }
     if (activePlaylistId === 'liked') {
-      return likedTracks;
+      return tracks.filter((t) => t.isLiked);
     }
     if (activePlaylistId) {
       const pl = playlists.find((p) => p.id === activePlaylistId);
@@ -306,7 +355,7 @@ export const App: React.FC = () => {
       return tracks;
     }
     return filteredTracks;
-  }, [tracks, activePlaylistId, activeView, filteredTracks, playlists, likedTracks]);
+  }, [tracks, activeStationId, stationChannel, activePlaylistId, activeView, filteredTracks, playlists]);
 
   return (
     <div className="flex min-h-screen bg-canvas text-white font-body selection:bg-signal-green selection:text-black">
@@ -323,6 +372,8 @@ export const App: React.FC = () => {
         onOpenUpload={() => setIsUploadOpen(true)}
         onOpenIntegrations={() => setIsIntegrationsOpen(true)}
         connections={connections}
+        activeStationId={activeStationId}
+        onSelectStation={setActiveStationId}
       />
 
       {/* Main Content Area */}
@@ -330,10 +381,12 @@ export const App: React.FC = () => {
         {/* Top Header Bar */}
         <header className="h-16 px-8 md:px-12 flex items-center justify-between border-b border-white/10 sticky top-0 bg-[#090a0d]/80 backdrop-blur-md z-20">
           <div className="flex items-center gap-2 font-mono text-xs text-zinc-400">
-            <span className="uppercase text-zinc-500">Audio Stream</span>
+            <span className="uppercase text-zinc-500">Method 1 CDN Stream</span>
             <span>/</span>
             <span className="text-white font-semibold">
-              {activePlaylistId
+              {activeStationId && stationChannel
+                ? stationChannel.name
+                : activePlaylistId
                 ? playlists.find((p) => p.id === activePlaylistId)?.name || 'Playlist'
                 : activeView.toUpperCase()}
             </span>
@@ -342,13 +395,13 @@ export const App: React.FC = () => {
           <div className="flex items-center gap-4 text-xs font-mono text-zinc-400">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-signal-green animate-pulse" />
-              <span className="hidden sm:inline">Engine Online</span>
+              <span className="hidden sm:inline">Zero Server Bandwidth • Live Stream</span>
             </div>
           </div>
         </header>
 
         {/* Hero Showcase with Live Canvas Visualizer Backdrop */}
-        {activeView === 'feed' && !activePlaylistId && !searchQuery && (
+        {activeView === 'feed' && !activePlaylistId && !activeStationId && !searchQuery && (
           <div className="relative">
             <AudioVisualizer mode={visualizerMode} isPlaying={isPlaying} />
             <HeroShowcase
@@ -364,7 +417,7 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Dynamic Catalog Content Sections */}
+        {/* Search Results */}
         {searchQuery ? (
           <div className="p-8 md:p-12">
             <h2 className="font-display font-bold text-2xl text-white mb-2">
@@ -395,14 +448,51 @@ export const App: React.FC = () => {
               ))}
             </div>
           </div>
+        ) : activeStationId && stationChannel ? (
+          /* Station View (Deluxe Salon Style) */
+          <div className="p-8 md:p-12">
+            <div className="mb-8">
+              <span className="font-mono text-xs uppercase text-signal-green tracking-wider">
+                Radio Stream Channel
+              </span>
+              <h2 className="font-display font-extrabold text-3xl sm:text-4xl text-white mt-1 mb-2">
+                {stationChannel.name}
+              </h2>
+              <p className="text-sm font-body text-zinc-400">
+                {stationChannel.description}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+              {stationChannel.tracks.map((track) => (
+                <div
+                  key={track.id}
+                  onClick={() => handlePlayTrack(track)}
+                  className="bg-black/40 border border-white/10 rounded-md p-3 cursor-pointer group hover:border-signal-green/50 transition-all"
+                >
+                  <div className="relative aspect-square rounded overflow-hidden mb-3 bg-[#14161c] flex items-center justify-center">
+                    <img src={track.art} alt={track.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    <span className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/80 rounded font-mono text-[9px] text-signal-green">
+                      {track.qualityBadge || 'STREAM'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-semibold truncate text-white group-hover:text-signal-green">
+                    {track.title}
+                  </h4>
+                  <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         ) : activePlaylistId || activeView === 'library' ? (
+          /* Library or Playlist View */
           <div className="p-8 md:p-12">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="font-display font-bold text-3xl text-white mb-2">
                   {activePlaylistId
                     ? playlists.find((p) => p.id === activePlaylistId)?.name
-                    : 'Your Audio Library'}
+                    : 'Your Library'}
                 </h2>
                 <p className="text-xs font-mono text-zinc-400">
                   {displayTracks.length} Audio Tracks Available
@@ -410,87 +500,53 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            {displayTracks.length === 0 ? (
-              <div className="py-16 text-center border border-dashed border-white/10 rounded-lg">
-                <p className="text-zinc-400 font-mono text-xs mb-4">No tracks added to this view yet</p>
-                <button
-                  onClick={() => setIsUploadOpen(true)}
-                  className="px-4 py-2 bg-signal-green text-black font-semibold rounded text-xs font-mono"
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+              {displayTracks.map((track) => (
+                <div
+                  key={track.id}
+                  onClick={() => handlePlayTrack(track)}
+                  className="bg-black/40 border border-white/10 rounded-md p-3 cursor-pointer group hover:border-signal-green/50 transition-all"
                 >
-                  Import Local Audio Files
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                {displayTracks.map((track) => (
-                  <div
-                    key={track.id}
-                    onClick={() => handlePlayTrack(track)}
-                    className="bg-black/40 border border-white/10 rounded-md p-3 cursor-pointer group hover:border-signal-green/50 transition-all"
-                  >
-                    <div className="relative aspect-square rounded overflow-hidden mb-3 bg-[#14161c] flex items-center justify-center">
-                      {track.art ? (
-                        <img src={track.art} alt={track.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      ) : (
-                        <span className="text-xs font-mono text-zinc-500">AUDIO</span>
-                      )}
-                      <span className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/80 rounded font-mono text-[9px] text-signal-green">
-                        {track.qualityBadge || track.source.toUpperCase()}
-                      </span>
-                    </div>
-                    <h4 className="text-sm font-semibold truncate text-white group-hover:text-signal-green">
-                      {track.title}
-                    </h4>
-                    <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
+                  <div className="relative aspect-square rounded overflow-hidden mb-3 bg-[#14161c] flex items-center justify-center">
+                    {track.art ? (
+                      <img src={track.art} alt={track.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <span className="text-xs font-mono text-zinc-500">AUDIO</span>
+                    )}
+                    <span className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/80 rounded font-mono text-[9px] text-signal-green">
+                      {track.qualityBadge || track.source.toUpperCase()}
+                    </span>
                   </div>
-                ))}
-              </div>
-            )}
+                  <h4 className="text-sm font-semibold truncate text-white group-hover:text-signal-green">
+                    {track.title}
+                  </h4>
+                  <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
+          /* Feed: Deluxe Salon Channels */
           <>
-            {/* Real Sections */}
-            {localWorkspaceTracks.length > 0 && (
+            {STREAM_CHANNELS.map((channel) => (
               <SectionCarousel
-                title="Workspace Audio Files"
-                subtitle="Local audio files detected directly in your workspace"
-                tracks={localWorkspaceTracks}
+                key={channel.id}
+                title={channel.name}
+                subtitle={channel.description}
+                tracks={channel.tracks}
                 currentTrack={currentTrack}
                 isPlaying={isPlaying}
                 onPlayTrack={handlePlayTrack}
                 onToggleLike={handleToggleLike}
               />
-            )}
+            ))}
 
-            {importedTracks.length > 0 && (
+            {/* Local Files Carousel if present */}
+            {tracks.filter((t) => t.source === 'local').length > 0 && (
               <SectionCarousel
-                title="Imported Music Vault"
-                subtitle="Audio files imported into your offline browser storage"
-                tracks={importedTracks}
-                currentTrack={currentTrack}
-                isPlaying={isPlaying}
-                onPlayTrack={handlePlayTrack}
-                onToggleLike={handleToggleLike}
-              />
-            )}
-
-            {streamingTracks.length > 0 && (
-              <SectionCarousel
-                title="Streaming Audio Feeds"
-                subtitle="Connected Spotify and YouTube Music streams"
-                tracks={streamingTracks}
-                currentTrack={currentTrack}
-                isPlaying={isPlaying}
-                onPlayTrack={handlePlayTrack}
-                onToggleLike={handleToggleLike}
-              />
-            )}
-
-            {likedTracks.length > 0 && (
-              <SectionCarousel
-                title="Liked Tracks"
-                subtitle="Your favorited songs"
-                tracks={likedTracks}
+                title="Workspace Local Audio"
+                subtitle="Local audio files loaded in your workspace"
+                tracks={tracks.filter((t) => t.source === 'local')}
                 currentTrack={currentTrack}
                 isPlaying={isPlaying}
                 onPlayTrack={handlePlayTrack}
@@ -568,8 +624,13 @@ export const App: React.FC = () => {
         currentTrackIndex={currentTrackIndex}
         onSelectTrack={(idx) => {
           setCurrentTrackIndex(idx);
-          if (queue[idx].source !== 'youtube') {
-            audioEngine.play(queue[idx].src);
+          const tr = queue[idx];
+          if (tr.source === 'youtube' && tr.youtubeId) {
+            audioEngine.pause();
+            youtubePlayer.playVideo(tr.youtubeId);
+          } else {
+            youtubePlayer.pause();
+            audioEngine.play(tr.src);
           }
         }}
         onRemoveTrack={handleRemoveFromQueue}

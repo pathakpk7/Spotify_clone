@@ -8,10 +8,13 @@ import {
   UploadCloud, 
   Radio, 
   FolderPlus,
+  Activity,
   Flame,
-  Activity
+  Moon,
+  Sparkles
 } from 'lucide-react';
 import { Playlist, ServiceConnection } from '../../types/music';
+import { STREAM_CHANNELS } from '../../data/streamCatalog';
 
 interface SidebarProps {
   activeView: string;
@@ -25,6 +28,8 @@ interface SidebarProps {
   onOpenUpload: () => void;
   onOpenIntegrations: () => void;
   connections: ServiceConnection;
+  activeStationId: string | null;
+  onSelectStation: (stationId: string | null) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -38,7 +43,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCreatePlaylist,
   onOpenUpload,
   onOpenIntegrations,
-  connections
+  connections,
+  activeStationId,
+  onSelectStation
 }) => {
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
@@ -49,6 +56,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       onCreatePlaylist(newPlaylistName.trim());
       setNewPlaylistName('');
       setIsCreatingPlaylist(false);
+    }
+  };
+
+  const getStationIcon = (id: string) => {
+    switch (id) {
+      case 'highway-radio': return <Flame size={14} className="text-amber-400" />;
+      case 'lofi-ambient': return <Moon size={14} className="text-blue-400" />;
+      case 'synthwave-night': return <Sparkles size={14} className="text-pink-400" />;
+      default: return <Radio size={14} className="text-signal-green" />;
     }
   };
 
@@ -64,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Pulse
           </h1>
           <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest">
-            Hi-Fi Audio System
+            Cloud Stream Engine
           </span>
         </div>
       </div>
@@ -76,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search tracks, artists..."
+          placeholder="Search tracks, streams..."
           className="w-full bg-black/50 border border-white/10 rounded px-3 pl-9 py-2 text-xs font-body text-white placeholder-zinc-500 focus:outline-none focus:border-signal-green transition-colors"
         />
         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-[10px] text-zinc-500 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
@@ -85,64 +101,74 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Primary Navigation */}
-      <nav className="space-y-1 mb-8">
+      <nav className="space-y-1 mb-6">
         <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 px-3 mb-2">
           Navigation
         </span>
 
         <button
-          onClick={() => { setActiveView('feed'); onSelectPlaylist(null); }}
+          onClick={() => { setActiveView('feed'); onSelectPlaylist(null); onSelectStation(null); }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs font-semibold transition-all ${
-            activeView === 'feed' && activePlaylistId === null
+            activeView === 'feed' && activePlaylistId === null && activeStationId === null
               ? 'bg-white/10 text-white font-bold'
               : 'text-zinc-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Home size={16} className={activeView === 'feed' && activePlaylistId === null ? 'text-signal-green' : 'text-zinc-500'} />
-          <span>Master Feed</span>
+          <Home size={16} className={activeView === 'feed' && activePlaylistId === null && activeStationId === null ? 'text-signal-green' : 'text-zinc-500'} />
+          <span>All Streams</span>
         </button>
 
         <button
-          onClick={() => { setActiveView('explore'); onSelectPlaylist(null); }}
+          onClick={() => { setActiveView('library'); onSelectPlaylist(null); onSelectStation(null); }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs font-semibold transition-all ${
-            activeView === 'explore'
+            activeView === 'library' && activePlaylistId === null && activeStationId === null
               ? 'bg-white/10 text-white font-bold'
               : 'text-zinc-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Compass size={16} className={activeView === 'explore' ? 'text-signal-green' : 'text-zinc-500'} />
-          <span>Explore Catalog</span>
-        </button>
-
-        <button
-          onClick={() => { setActiveView('library'); onSelectPlaylist(null); }}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs font-semibold transition-all ${
-            activeView === 'library' && activePlaylistId === null
-              ? 'bg-white/10 text-white font-bold'
-              : 'text-zinc-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Library size={16} className={activeView === 'library' && activePlaylistId === null ? 'text-signal-green' : 'text-zinc-500'} />
-          <span>Local Library</span>
+          <Library size={16} className={activeView === 'library' ? 'text-signal-green' : 'text-zinc-500'} />
+          <span>Your Library</span>
         </button>
       </nav>
 
-      {/* Cloud & Import Triggers */}
-      <div className="space-y-2 mb-8">
+      {/* Deluxe Salon Style Stations / Themes */}
+      <div className="space-y-1 mb-6">
         <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 px-3 mb-2">
-          Audio Sources
+          Radio Stations (Method 1)
         </span>
+        {STREAM_CHANNELS.map((channel) => {
+          const isSelected = activeStationId === channel.id;
+          return (
+            <button
+              key={channel.id}
+              onClick={() => {
+                onSelectStation(channel.id);
+                onSelectPlaylist(null);
+                setActiveView('station');
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded text-xs transition-all ${
+                isSelected
+                  ? 'bg-signal-green text-black font-bold'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <span className="flex items-center gap-2 truncate">
+                {getStationIcon(channel.id)}
+                <span className="truncate">{channel.name}</span>
+              </span>
+              <span className={`font-mono text-[10px] ${isSelected ? 'text-black/80' : 'text-zinc-600'}`}>
+                {channel.tracks.length}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-        <button
-          onClick={onOpenUpload}
-          className="w-full flex items-center justify-between px-3 py-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-zinc-300 transition-all group"
-        >
-          <span className="flex items-center gap-2">
-            <UploadCloud size={14} className="text-signal-green group-hover:scale-110 transition-transform" />
-            <span>Add Local Files</span>
-          </span>
-          <Plus size={14} className="text-zinc-500" />
-        </button>
+      {/* Cloud & Import Triggers */}
+      <div className="space-y-2 mb-6">
+        <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 px-3 mb-2">
+          Stream Sources
+        </span>
 
         <button
           onClick={onOpenIntegrations}
@@ -150,11 +176,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <span className="flex items-center gap-2">
             <Radio size={14} className="text-red-400 group-hover:scale-110 transition-transform" />
-            <span>Connect Spotify/YT</span>
+            <span>Add YouTube / Spotify Link</span>
           </span>
-          {(connections.spotify.isConnected || connections.youtube.isConnected) && (
-            <span className="w-2 h-2 rounded-full bg-signal-green animate-pulse"></span>
-          )}
+          <Plus size={14} className="text-zinc-500" />
+        </button>
+
+        <button
+          onClick={onOpenUpload}
+          className="w-full flex items-center justify-between px-3 py-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-zinc-300 transition-all group"
+        >
+          <span className="flex items-center gap-2">
+            <UploadCloud size={14} className="text-signal-green group-hover:scale-110 transition-transform" />
+            <span>Import Local Files</span>
+          </span>
+          <Plus size={14} className="text-zinc-500" />
         </button>
       </div>
 
@@ -193,7 +228,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             return (
               <button
                 key={pl.id}
-                onClick={() => { setActiveView('playlist'); onSelectPlaylist(pl.id); }}
+                onClick={() => {
+                  setActiveView('playlist');
+                  onSelectPlaylist(pl.id);
+                  onSelectStation(null);
+                }}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded text-xs transition-all ${
                   isSelected
                     ? 'bg-signal-green text-black font-bold'
@@ -216,16 +255,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Hardware Telemetry Badge */}
       <div className="pt-4 border-t border-white/10 flex flex-col gap-1.5 font-mono text-[10px] text-zinc-500">
         <div className="flex justify-between items-center">
-          <span>OUTPUT</span>
-          <span className="text-signal-green font-semibold">FLAC 24-BIT</span>
+          <span>STREAM CDN</span>
+          <span className="text-signal-green font-semibold">METHOD 1 ACTIVE</span>
         </div>
         <div className="flex justify-between items-center">
-          <span>RATE</span>
-          <span className="text-zinc-300 font-semibold">96.0 kHz</span>
+          <span>SERVER OVERHEAD</span>
+          <span className="text-zinc-300 font-semibold">0 MB</span>
         </div>
         <div className="flex justify-between items-center">
-          <span>DSP</span>
-          <span className="text-signal-green">Active 10-Band</span>
+          <span>LATENCY</span>
+          <span className="text-signal-green">Instant Buffer</span>
         </div>
       </div>
     </aside>
