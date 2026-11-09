@@ -32,6 +32,7 @@ interface SidebarProps {
   connections: ServiceConnection;
   activeStationId: string | null;
   onSelectStation: (stationId: string | null) => void;
+  onOpenPortal?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -48,7 +49,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenIntegrations,
   connections,
   activeStationId,
-  onSelectStation
+  onSelectStation,
+  onOpenPortal
 }) => {
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
@@ -135,6 +137,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Library size={16} className={activeView === 'library' ? 'text-signal-green' : 'text-zinc-500'} />
           <span>Your Library</span>
         </button>
+
+        {onOpenPortal && (
+          <button
+            onClick={onOpenPortal}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
+          >
+            <Sparkles size={16} className="text-white" />
+            <span>3D Spatial Portal</span>
+          </button>
+        )}
       </nav>
 
       {/* Spotify Connected Playlists */}

@@ -22,8 +22,15 @@ import { IntegrationsModal } from './components/integrations/IntegrationsModal';
 import { QueueDrawer } from './components/queue/QueueDrawer';
 import { EditorialFooter } from './components/footer/EditorialFooter';
 import { AudioCutterModal } from './components/cutter/AudioCutterModal';
+import { CinematicLandingPortal } from './components/hero/CinematicLandingPortal';
 
 export const App: React.FC = () => {
+  // State: Portal Landing Experience
+  const [hasEnteredPortal, setHasEnteredPortal] = useState<boolean>(() => {
+    return sessionStorage.getItem('pulse_portal_entered') === 'true';
+  });
+  const [activeLoopRange, setActiveLoopRange] = useState<[number, number] | null>(null);
+
   // State: Tracks & Playback
   const [tracks, setTracks] = useState<Track[]>(INITIAL_TRACKS);
   const [queue, setQueue] = useState<Track[]>(INITIAL_TRACKS);
@@ -100,6 +107,10 @@ export const App: React.FC = () => {
     // HTML5 Audio Engine Callbacks
     audioEngine.onTimeUpdate = (time, dur) => {
       if (currentTrack.source !== 'youtube') {
+        if (activeLoopRange && (time >= activeLoopRange[1] || time < activeLoopRange[0])) {
+          audioEngine.seek(activeLoopRange[0]);
+          return;
+        }
         setCurrentTime(time);
         if (dur > 0) setDuration(dur);
       }
@@ -113,7 +124,10 @@ export const App: React.FC = () => {
 
     audioEngine.onEnded = () => {
       if (currentTrack.source !== 'youtube') {
-        if (isRepeating) {
+        if (activeLoopRange) {
+          audioEngine.seek(activeLoopRange[0]);
+          audioEngine.play();
+        } else if (isRepeating) {
           audioEngine.seek(0);
           audioEngine.play();
         } else {
@@ -125,6 +139,10 @@ export const App: React.FC = () => {
     // YouTube Headless Player Callbacks (Method 1)
     youtubePlayer.onTimeUpdate = (time, dur) => {
       if (currentTrack.source === 'youtube') {
+        if (activeLoopRange && (time >= activeLoopRange[1] || time < activeLoopRange[0])) {
+          youtubePlayer.seekTo(activeLoopRange[0]);
+          return;
+        }
         setCurrentTime(time);
         if (dur > 0) setDuration(dur);
       }
@@ -150,6 +168,7 @@ export const App: React.FC = () => {
 
   // Audio Playback Handlers
   const handlePlayTrack = (track: Track) => {
+    setActiveLoopRange(null);
     const queueIndex = queue.findIndex((t) => t.id === track.id);
     if (queueIndex !== -1) {
       setCurrentTrackIndex(queueIndex);
@@ -421,6 +440,19 @@ export const App: React.FC = () => {
     setActiveView('station');
   };
 
+  // Set Active Loop Range on Current Song
+  const handleApplyLoop = (start: number, end: number) => {
+    setActiveLoopRange([start, end]);
+    if (currentTrack.source === 'youtube') {
+      youtubePlayer.seekTo(start);
+      youtubePlayer.play();
+    } else {
+      audioEngine.seek(start);
+      audioEngine.play();
+    }
+    setIsPlaying(true);
+  };
+
   // Display tracks calculation
   const displayTracks = useMemo(() => {
     if (activeStationId && stationChannel) {
@@ -443,6 +475,22 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-canvas text-white font-body selection:bg-signal-green selection:text-black">
+      {/* 1. Cinematic Full-Screen 3D Headphone Landing Portal with Zoom-In Transition */}
+      {!hasEnteredPortal && (
+        <div className="fixed inset-0 z-50 bg-[#050608] flex items-center justify-center">
+          <CinematicLandingPortal
+            isPlaying={isPlaying}
+            currentTrack={currentTrack}
+            onEnterMain={() => {
+              setHasEnteredPortal(true);
+              sessionStorage.setItem('pulse_portal_entered', 'true');
+            }}
+            onOpenCutter={() => setIsCutterOpen(true)}
+            onTogglePlay={handleTogglePlay}
+          />
+        </div>
+      )}
+
       {/* Sidebar Navigation */}
       <Sidebar
         channels={channels}
@@ -459,6 +507,7 @@ export const App: React.FC = () => {
         connections={connections}
         activeStationId={activeStationId}
         onSelectStation={setActiveStationId}
+        onOpenPortal={() => setHasEnteredPortal(false)}
       />
 
       {/* Main Content Area */}
@@ -781,6 +830,7 @@ export const App: React.FC = () => {
         duration={duration}
         onSeek={handleSeek}
         onSaveSnippet={handleTrackUploaded}
+        onApplyLoop={handleApplyLoop}
       />
 
       {/* Studio Parametric Equalizer Modal */}

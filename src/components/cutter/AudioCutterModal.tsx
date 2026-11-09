@@ -13,6 +13,7 @@ interface AudioCutterModalProps {
   duration: number;
   onSeek: (time: number) => void;
   onSaveSnippet?: (newTrack: Track) => void;
+  onApplyLoop?: (startTime: number, endTime: number) => void;
 }
 
 export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
@@ -22,15 +23,18 @@ export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
   currentTime,
   duration,
   onSeek,
-  onSaveSnippet
+  onSaveSnippet,
+  onApplyLoop
 }) => {
-  const safeDuration = duration > 0 ? duration : 180;
+  const ytDur = currentTrack.source === 'youtube' ? youtubePlayer.getDuration() : 0;
+  const safeDuration = ytDur > 0 ? ytDur : duration > 0 ? duration : currentTrack.duration > 0 ? currentTrack.duration : 210;
   
   // Cut bounds state (in seconds)
   const [startTime, setStartTime] = useState<number>(0);
   const [endTime, setEndTime] = useState<number>(Math.min(30, safeDuration));
   const [isPreviewPlaying, setIsPreviewPlaying] = useState<boolean>(false);
   const [isSaved, setIsSaved] = useState<boolean>(false);
+  const [isLoopApplied, setIsLoopApplied] = useState<boolean>(false);
 
   const waveformRef = useRef<HTMLDivElement | null>(null);
   const isDraggingStart = useRef(false);
@@ -355,13 +359,33 @@ export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
 
             {/* Action Bar */}
             <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-white/10">
-              <button
-                onClick={togglePreview}
-                className="px-5 py-2.5 bg-signal-green hover:bg-signal-green-hover text-black font-semibold rounded-lg text-xs font-mono flex items-center gap-2 transition-all shadow-signal"
-              >
-                {isPreviewPlaying ? <Pause size={15} /> : <Play size={15} />}
-                <span>{isPreviewPlaying ? 'Pause Cut' : 'Preview Cut Loop'}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={togglePreview}
+                  className="px-4 py-2.5 bg-signal-green hover:bg-signal-green-hover text-black font-semibold rounded-lg text-xs font-mono flex items-center gap-2 transition-all shadow-signal"
+                >
+                  {isPreviewPlaying ? <Pause size={14} /> : <Play size={14} />}
+                  <span>{isPreviewPlaying ? 'Pause Cut' : 'Preview Cut'}</span>
+                </button>
+
+                {onApplyLoop && (
+                  <button
+                    onClick={() => {
+                      onApplyLoop(startTime, endTime);
+                      setIsLoopApplied(true);
+                      setTimeout(() => setIsLoopApplied(false), 3000);
+                    }}
+                    className={`px-4 py-2.5 rounded-lg text-xs font-mono flex items-center gap-2 transition-all border ${
+                      isLoopApplied
+                        ? 'bg-signal-green text-black border-signal-green font-bold'
+                        : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
+                    }`}
+                  >
+                    <Scissors size={14} />
+                    <span>{isLoopApplied ? 'Active Loop Set!' : 'Apply Cut to Song'}</span>
+                  </button>
+                )}
+              </div>
 
               <div className="flex items-center gap-2">
                 <button

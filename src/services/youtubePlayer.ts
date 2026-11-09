@@ -59,19 +59,29 @@ class YouTubePlayerService {
       return;
     }
 
-    // Ensure hidden container exists
+    // Ensure hidden container exists inside off-screen wrapper
+    let wrapper = document.getElementById('yt-headless-wrapper');
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.id = 'yt-headless-wrapper';
+      wrapper.style.position = 'fixed';
+      wrapper.style.top = '-99999px';
+      wrapper.style.left = '-99999px';
+      wrapper.style.width = '1px';
+      wrapper.style.height = '1px';
+      wrapper.style.opacity = '0';
+      wrapper.style.pointerEvents = 'none';
+      wrapper.style.visibility = 'hidden';
+      wrapper.style.overflow = 'hidden';
+      wrapper.style.zIndex = '-99999';
+      document.body.appendChild(wrapper);
+    }
+
     let container = document.getElementById('yt-headless-container');
     if (!container) {
       container = document.createElement('div');
       container.id = 'yt-headless-container';
-      container.style.position = 'fixed';
-      container.style.bottom = '-9999px';
-      container.style.left = '-9999px';
-      container.style.width = '1px';
-      container.style.height = '1px';
-      container.style.opacity = '0';
-      container.style.pointerEvents = 'none';
-      document.body.appendChild(container);
+      wrapper.appendChild(container);
     }
 
     if (this.player && this.isReady) {
