@@ -1,26 +1,24 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUpRight, Play, Pause, Scissors, Music } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowUpRight } from 'lucide-react';
 import { Track } from '../../types/music';
 import { RotatingHeadphone } from './RotatingHeadphone';
 import { CardioWaveform } from './CardioWaveform';
 
 interface CinematicLandingPortalProps {
   isPlaying: boolean;
-  currentTrack: Track;
   onEnterMain: () => void;
+  currentTrack?: Track;
   onOpenCutter?: () => void;
   onTogglePlay?: () => void;
 }
 
 export const CinematicLandingPortal: React.FC<CinematicLandingPortalProps> = ({
   isPlaying,
-  currentTrack,
-  onEnterMain,
-  onOpenCutter,
-  onTogglePlay
+  onEnterMain
 }) => {
   const [isZooming, setIsZooming] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleTriggerEnter = () => {
     if (isZooming) return;
@@ -40,7 +38,7 @@ export const CinematicLandingPortal: React.FC<CinematicLandingPortalProps> = ({
       {/* 1. Fluid Background Heartbeat Waveform */}
       <CardioWaveform isPlaying={isPlaying} />
 
-      {/* 2. Top Minimal Living Header - Focused on the Website */}
+      {/* 2. Top Minimal Living Header */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -63,7 +61,7 @@ export const CinematicLandingPortal: React.FC<CinematicLandingPortalProps> = ({
         </div>
       </motion.div>
 
-      {/* 3. Centerpiece: 3D Headphone with Flanking Website Capabilities */}
+      {/* 3. Centerpiece: 3D Volumetric Headphone & Pulsating "Pulse" Entrance */}
       <div className="relative z-10 my-auto flex flex-col items-center justify-center w-full max-w-5xl">
         {/* Left Side: Website Features */}
         <div className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-6 text-[11px] font-mono text-zinc-400 pointer-events-none">
@@ -104,87 +102,78 @@ export const CinematicLandingPortal: React.FC<CinematicLandingPortalProps> = ({
           onClick={handleTriggerEnter}
         />
 
-        {/* Website Title & Entry Action Below Headphone */}
-        <motion.div
-          animate={isZooming ? { scale: 1.4, opacity: 0 } : { opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mt-[-20px] relative z-20 select-none cursor-pointer group"
-          onClick={handleTriggerEnter}
-        >
-          <h1 className="font-display font-extrabold text-5xl sm:text-7xl tracking-tight text-white leading-none group-hover:text-signal-green transition-colors">
-            Pulse
-          </h1>
-          <p className="font-mono text-xs text-zinc-400 mt-3 flex items-center justify-center gap-2 group-hover:text-white transition-colors">
-            <span>Enter web platform</span>
-            <ArrowUpRight size={14} className="text-signal-green group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </p>
-        </motion.div>
+        {/* Interactive "Pulse" Entrance with Pulsating Hover Effect */}
+        <div className="mt-[-20px] relative z-20 flex flex-col items-center">
+          <motion.div
+            animate={
+              isZooming
+                ? { scale: 1.5, opacity: 0 }
+                : isHovered
+                ? {
+                    scale: [1, 1.05, 1],
+                    filter: [
+                      'drop-shadow(0 0 15px rgba(255,255,255,0.4))',
+                      'drop-shadow(0 0 35px rgba(0,229,117,0.85))',
+                      'drop-shadow(0 0 15px rgba(255,255,255,0.4))'
+                    ]
+                  }
+                : {
+                    scale: 1,
+                    filter: 'drop-shadow(0 0 0px rgba(0,0,0,0))'
+                  }
+            }
+            transition={
+              isHovered
+                ? { duration: 1.4, repeat: Infinity, ease: 'easeInOut' }
+                : { duration: 0.3 }
+            }
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onClick={handleTriggerEnter}
+            className="text-center select-none cursor-pointer group"
+          >
+            <h1
+              className={`font-display font-extrabold text-6xl sm:text-8xl tracking-tight transition-colors duration-300 leading-none ${
+                isHovered ? 'text-signal-green' : 'text-white'
+              }`}
+            >
+              Pulse
+            </h1>
+
+            {/* Hover Floating Text: "Click to Enter" */}
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={isHovered ? { opacity: 1, y: 0 } : { opacity: 0.65, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="mt-4 flex items-center justify-center gap-2 font-mono text-xs group-hover:text-white transition-colors"
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                  isHovered ? 'bg-signal-green animate-ping' : 'bg-white/40'
+                }`}
+              />
+              <span
+                className={`tracking-widest uppercase text-xs font-semibold ${
+                  isHovered ? 'text-signal-green' : 'text-zinc-400'
+                }`}
+              >
+                Click to Enter
+              </span>
+              <ArrowUpRight
+                size={14}
+                className={`transition-transform duration-300 ${
+                  isHovered ? 'text-signal-green translate-x-1 -translate-y-1' : 'text-zinc-500'
+                }`}
+              />
+            </motion.div>
+          </motion.div>
+        </div>
       </div>
 
-      {/* 4. Bottom Controls & Song Bar */}
-      <motion.div
-        animate={isZooming ? { y: 30, opacity: 0 } : { y: 0, opacity: 1 }}
-        transition={{ duration: 0.4 }}
-        className="relative z-20 w-full max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/5"
-      >
-        {/* Current Active Song Identity & Play/Pause */}
-        <div className="flex items-center gap-3 min-w-0">
-          {onTogglePlay && (
-            <button
-              onClick={onTogglePlay}
-              className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:bg-signal-green transition-all shadow-md shrink-0 active:scale-95"
-              title={isPlaying ? 'Pause' : 'Play'}
-            >
-              {isPlaying ? (
-                <Pause size={16} fill="currentColor" />
-              ) : (
-                <Play size={16} fill="currentColor" className="ml-0.5" />
-              )}
-            </button>
-          )}
-
-          {currentTrack.art ? (
-            <img
-              src={currentTrack.art}
-              alt={currentTrack.title}
-              className="w-10 h-10 rounded object-cover border border-white/10 shrink-0"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded bg-white/10 flex items-center justify-center text-white shrink-0">
-              <Music size={16} />
-            </div>
-          )}
-
-          <div className="min-w-0 text-left">
-            <h4 className="text-xs font-semibold text-white truncate max-w-[200px] sm:max-w-sm">
-              {currentTrack.title}
-            </h4>
-            <p className="text-[11px] text-zinc-400 truncate">{currentTrack.artist}</p>
-          </div>
-        </div>
-
-        {/* Action Suite: Audio Trimmer & Enter Platform */}
-        <div className="flex items-center gap-3">
-          {onOpenCutter && (
-            <button
-              onClick={onOpenCutter}
-              className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/15 text-white rounded-lg text-xs font-mono flex items-center gap-2 transition-all hover:border-signal-green/40 group active:scale-95"
-              title="Cut & loop this song"
-            >
-              <Scissors size={14} className="text-signal-green group-hover:rotate-12 transition-transform" />
-              <span>Cut Current Song</span>
-            </button>
-          )}
-
-          <button
-            onClick={handleTriggerEnter}
-            className="px-6 py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-lg text-xs font-mono flex items-center gap-2 transition-all shadow-[0_0_24px_rgba(255,255,255,0.4)] active:scale-95 hover:scale-[1.02]"
-          >
-            <span>Enter Platform</span>
-            <ArrowUpRight size={14} />
-          </button>
-        </div>
-      </motion.div>
+      {/* 4. Bottom Clean Minimal Spacer */}
+      <div className="h-6 w-full max-w-6xl flex items-center justify-center text-[10px] font-mono text-zinc-600">
+        <span>Press anywhere on Pulse or Headphone to enter</span>
+      </div>
     </motion.div>
   );
 };
