@@ -1,4 +1,4 @@
-import { Track, Playlist, ServiceConnection } from '../types/music';
+import { Track, Playlist, ServiceConnection, StreamChannel } from '../types/music';
 
 const DB_NAME = 'PulseAudioDB';
 const DB_VERSION = 1;
@@ -174,6 +174,37 @@ export const storageService = {
       const all = this.getSyncedChannels();
       all[channelId] = tracks;
       localStorage.setItem('pulse_synced_channels', JSON.stringify(all));
+    } catch (e) {
+      console.error(e);
+    }
+  },
+
+  // Custom Imported Stream Channels (Spotify Playlists & User YouTube Stations)
+  getCustomChannels(): StreamChannel[] {
+    try {
+      const saved = localStorage.getItem('pulse_custom_stations');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  },
+
+  saveCustomChannel(channel: StreamChannel) {
+    try {
+      const existing = this.getCustomChannels();
+      const filtered = existing.filter((c) => c.id !== channel.id);
+      localStorage.setItem('pulse_custom_stations', JSON.stringify([channel, ...filtered]));
+    } catch (e) {
+      console.error(e);
+    }
+  },
+
+  deleteCustomChannel(channelId: string) {
+    try {
+      const existing = this.getCustomChannels();
+      const filtered = existing.filter((c) => c.id !== channelId);
+      localStorage.setItem('pulse_custom_stations', JSON.stringify(filtered));
     } catch (e) {
       console.error(e);
     }

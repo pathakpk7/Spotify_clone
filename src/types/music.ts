@@ -56,6 +56,10 @@ export interface StreamChannel {
   name: string;
   description: string;
   playlistId?: string;
+  spotifyPlaylistId?: string;
+  spotifyEmbedUrl?: string;
+  coverArt?: string;
+  channelType?: 'youtube' | 'spotify' | 'ambient';
   tracks: Track[];
   lastSynced?: number;
 }

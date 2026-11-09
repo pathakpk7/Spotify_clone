@@ -11,7 +11,8 @@ import {
   Activity,
   Flame,
   Moon,
-  Sparkles
+  Sparkles,
+  Music2
 } from 'lucide-react';
 import { Playlist, ServiceConnection, StreamChannel } from '../../types/music';
 import { STREAM_CHANNELS } from '../../data/streamCatalog';
@@ -61,12 +62,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const getStationIcon = (id: string) => {
-    switch (id) {
-      case 'highway-radio': return <Flame size={14} className="text-amber-400" />;
-      case 'lofi-ambient': return <Moon size={14} className="text-blue-400" />;
-      case 'synthwave-night': return <Sparkles size={14} className="text-pink-400" />;
-      default: return <Radio size={14} className="text-signal-green" />;
+  const getStationIcon = (channel: StreamChannel) => {
+    if (channel.channelType === 'spotify' || channel.id.startsWith('spotify-')) {
+      return <Music2 size={14} className="text-signal-green shrink-0" />;
+    }
+    switch (channel.id) {
+      case 'highway-radio': return <Flame size={14} className="text-amber-400 shrink-0" />;
+      case 'lofi-ambient': return <Moon size={14} className="text-blue-400 shrink-0" />;
+      case 'synthwave-night': return <Sparkles size={14} className="text-pink-400 shrink-0" />;
+      default: return <Radio size={14} className="text-signal-green shrink-0" />;
     }
   };
 
@@ -133,37 +137,77 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </nav>
 
+      {/* Spotify Connected Playlists */}
+      {channels.filter((c) => c.channelType === 'spotify' || c.id.startsWith('spotify-')).length > 0 && (
+        <div className="space-y-1 mb-6">
+          <span className="block font-mono text-[10px] uppercase tracking-wider text-signal-green px-3 mb-2 flex items-center gap-1.5">
+            <Music2 size={11} />
+            Spotify Playlists
+          </span>
+          {channels
+            .filter((c) => c.channelType === 'spotify' || c.id.startsWith('spotify-'))
+            .map((channel) => {
+              const isSelected = activeStationId === channel.id;
+              return (
+                <button
+                  key={channel.id}
+                  onClick={() => {
+                    onSelectStation(channel.id);
+                    onSelectPlaylist(null);
+                    setActiveView('station');
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded text-xs transition-all ${
+                    isSelected
+                      ? 'bg-signal-green text-black font-bold'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    {getStationIcon(channel)}
+                    <span className="truncate">{channel.name}</span>
+                  </span>
+                  <span className={`font-mono text-[10px] ${isSelected ? 'text-black/80' : 'text-zinc-600'}`}>
+                    {channel.tracks.length}
+                  </span>
+                </button>
+              );
+            })}
+        </div>
+      )}
+
       {/* Deluxe Salon Style Stations / Themes */}
       <div className="space-y-1 mb-6">
         <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 px-3 mb-2">
           Radio Stations (Method 1)
         </span>
-        {channels.map((channel) => {
-          const isSelected = activeStationId === channel.id;
-          return (
-            <button
-              key={channel.id}
-              onClick={() => {
-                onSelectStation(channel.id);
-                onSelectPlaylist(null);
-                setActiveView('station');
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded text-xs transition-all ${
-                isSelected
-                  ? 'bg-signal-green text-black font-bold'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <span className="flex items-center gap-2 truncate">
-                {getStationIcon(channel.id)}
-                <span className="truncate">{channel.name}</span>
-              </span>
-              <span className={`font-mono text-[10px] ${isSelected ? 'text-black/80' : 'text-zinc-600'}`}>
-                {channel.tracks.length}
-              </span>
-            </button>
-          );
-        })}
+        {channels
+          .filter((c) => c.channelType !== 'spotify' && !c.id.startsWith('spotify-'))
+          .map((channel) => {
+            const isSelected = activeStationId === channel.id;
+            return (
+              <button
+                key={channel.id}
+                onClick={() => {
+                  onSelectStation(channel.id);
+                  onSelectPlaylist(null);
+                  setActiveView('station');
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded text-xs transition-all ${
+                  isSelected
+                    ? 'bg-signal-green text-black font-bold'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span className="flex items-center gap-2 truncate">
+                  {getStationIcon(channel)}
+                  <span className="truncate">{channel.name}</span>
+                </span>
+                <span className={`font-mono text-[10px] ${isSelected ? 'text-black/80' : 'text-zinc-600'}`}>
+                  {channel.tracks.length}
+                </span>
+              </button>
+            );
+          })}
       </div>
 
       {/* Cloud & Import Triggers */}

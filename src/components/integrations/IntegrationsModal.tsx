@@ -23,8 +23,10 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
   onTrackAdded,
   onChannelAdded
 }) => {
-  const [activeTab, setActiveTab] = useState<'spotify' | 'youtube' | 'settings'>('youtube');
+  const [activeTab, setActiveTab] = useState<'spotify' | 'youtube' | 'settings'>('spotify');
   const [spotifyUrl, setSpotifyUrl] = useState('');
+  const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState('');
+  const [spotifyPlaylistName, setSpotifyPlaylistName] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [youtubeTitle, setYoutubeTitle] = useState('');
   const [playlistUrl, setPlaylistUrl] = useState('');
@@ -51,6 +53,34 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
     } else {
       setStatusMsg('Invalid Spotify link. Use format: https://open.spotify.com/track/...');
       setTimeout(() => setStatusMsg(null), 3500);
+    }
+  };
+
+  const handleImportSpotifyPlaylist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!spotifyPlaylistUrl.trim()) return;
+
+    setIsLoading(true);
+    setStatusMsg('Extracting Spotify playlist & metadata...');
+
+    const channel = await spotifyService.fetchPlaylistDetails(
+      spotifyPlaylistUrl.trim(),
+      spotifyPlaylistName.trim() || undefined
+    );
+    setIsLoading(false);
+
+    if (channel) {
+      if (onChannelAdded) {
+        onChannelAdded(channel);
+      }
+      storageService.saveCustomChannel(channel);
+      setSpotifyPlaylistUrl('');
+      setSpotifyPlaylistName('');
+      setStatusMsg(`Connected Spotify Playlist "${channel.name}"!`);
+      setTimeout(() => setStatusMsg(null), 4000);
+    } else {
+      setStatusMsg('Could not fetch Spotify playlist. Ensure the link or playlist ID is valid.');
+      setTimeout(() => setStatusMsg(null), 4000);
     }
   };
 
@@ -92,6 +122,7 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
         name: playlistStationName.trim() || res.title,
         description: `Live synced playlist (${res.tracks.length} tracks)`,
         playlistId: res.playlistId,
+        channelType: 'youtube',
         tracks: res.tracks,
         lastSynced: Date.now()
       };
@@ -99,6 +130,7 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
       if (onChannelAdded) {
         onChannelAdded(channel);
       }
+      storageService.saveCustomChannel(channel);
       setPlaylistUrl('');
       setPlaylistStationName('');
       setStatusMsg(`Imported "${channel.name}" with ${res.tracks.length} tracks!`);
@@ -139,8 +171,8 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
               <div>
-                <h3 className="font-display font-bold text-lg text-white">Streaming & Playlist Sync</h3>
-                <p className="text-xs font-mono text-zinc-400">Headless CDN Streaming & YouTube Live Sync</p>
+                <h3 className="font-display font-bold text-lg text-white">Streaming & Playlist Bridges</h3>
+                <p className="text-xs font-mono text-zinc-400">Directly Access Spotify & YouTube Playlists</p>
               </div>
               <button
                 onClick={onClose}
@@ -152,6 +184,18 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
 
             {/* Service Tabs */}
             <div className="flex items-center gap-2 border-b border-white/10 pb-4 mb-6">
+              <button
+                onClick={() => setActiveTab('spotify')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono font-medium transition-all ${
+                  activeTab === 'spotify'
+                    ? 'bg-signal-green text-black font-semibold'
+                    : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Music2 size={14} />
+                Spotify Playlist / Track
+              </button>
+
               <button
                 onClick={() => setActiveTab('youtube')}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono font-medium transition-all ${
@@ -165,18 +209,6 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
               </button>
 
               <button
-                onClick={() => setActiveTab('spotify')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono font-medium transition-all ${
-                  activeTab === 'spotify'
-                    ? 'bg-signal-green text-black font-semibold'
-                    : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <Music2 size={14} />
-                Spotify Track
-              </button>
-
-              <button
                 onClick={() => setActiveTab('settings')}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono font-medium transition-all ${
                   activeTab === 'settings'
@@ -185,9 +217,79 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
                 }`}
               >
                 <Key size={14} />
-                Live API Key
+                API Keys
               </button>
             </div>
+
+            {/* Spotify Tab */}
+            {activeTab === 'spotify' && (
+              <div className="space-y-6">
+                {/* 1. Import Full Spotify Playlist */}
+                <form onSubmit={handleImportSpotifyPlaylist} className="p-4 bg-black/40 border border-white/10 rounded-md space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-mono text-signal-green font-semibold flex items-center gap-1.5">
+                      <Music2 size={13} />
+                      Import & Direct-Access Spotify Playlist:
+                    </label>
+                    <span className="text-[10px] font-mono text-zinc-500 uppercase">Native Embed + Audio</span>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={spotifyPlaylistUrl}
+                    onChange={(e) => setSpotifyPlaylistUrl(e.target.value)}
+                    placeholder="https://open.spotify.com/playlist/... or spotify:playlist:..."
+                    className="w-full bg-black/60 border border-white/15 rounded px-3 py-2 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-signal-green"
+                  />
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={spotifyPlaylistName}
+                      onChange={(e) => setSpotifyPlaylistName(e.target.value)}
+                      placeholder="Custom Station Name (Optional)"
+                      className="flex-grow bg-black/60 border border-white/10 rounded px-3 py-1.5 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-white/30"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="px-4 py-1.5 bg-signal-green hover:bg-signal-green-hover text-black font-semibold rounded text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      <Plus size={14} />
+                      {isLoading ? 'Connecting...' : 'Add Spotify Station'}
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-400 font-body leading-normal">
+                    Paste your Spotify playlist URL. Pulse pulls the playlist metadata, artwork, and tracks, and embeds the interactive official Spotify player for seamless direct listening.
+                  </p>
+                </form>
+
+                {/* 2. Import Single Spotify Track */}
+                <form onSubmit={handleAddSpotifyTrack} className="p-4 bg-black/20 border border-white/10 rounded-md space-y-3">
+                  <label className="block text-xs font-mono text-zinc-300 font-semibold">
+                    Or Import Single Spotify Track Link:
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={spotifyUrl}
+                      onChange={(e) => setSpotifyUrl(e.target.value)}
+                      placeholder="https://open.spotify.com/track/..."
+                      className="flex-grow bg-black/60 border border-white/15 rounded px-3 py-2 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-signal-green"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-semibold rounded text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
+                      <Plus size={14} />
+                      Import Track
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
 
             {/* YouTube Tab */}
             {activeTab === 'youtube' && (
@@ -264,38 +366,6 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
                   />
                 </form>
               </div>
-            )}
-
-            {/* Spotify Tab */}
-            {activeTab === 'spotify' && (
-              <form onSubmit={handleAddSpotifyTrack} className="space-y-4">
-                <div className="p-4 bg-black/40 border border-white/10 rounded-md">
-                  <label className="block text-xs font-mono text-zinc-300 mb-2 font-semibold">
-                    Paste Public Spotify Song Link:
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={spotifyUrl}
-                      onChange={(e) => setSpotifyUrl(e.target.value)}
-                      placeholder="https://open.spotify.com/track/..."
-                      className="flex-grow bg-black/60 border border-white/15 rounded px-3 py-2 text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-signal-green"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="px-4 py-2 bg-signal-green hover:bg-signal-green-hover text-black font-semibold rounded text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                    >
-                      <Plus size={14} />
-                      {isLoading ? 'Fetching...' : 'Import'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-white/5 border border-white/5 rounded text-xs text-zinc-400 leading-relaxed font-body">
-                  Paste any public Spotify song link. Pulse automatically pulls the real metadata, album art, and integrates the audio stream.
-                </div>
-              </form>
             )}
 
             {/* Settings / API Key Tab */}

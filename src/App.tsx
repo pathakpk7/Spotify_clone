@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, RefreshCw, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { Play, RefreshCw, ExternalLink, CheckCircle2, Music2 } from 'lucide-react';
 import { audioEngine } from './services/audioEngine';
 import { youtubePlayer } from './services/youtubePlayer';
 import { youtubeService } from './services/youtubeService';
+import { spotifyService } from './services/spotifyService';
 import { storageService } from './services/storageService';
 import { INITIAL_TRACKS } from './data/defaultCatalog';
 import { STREAM_CHANNELS } from './data/streamCatalog';
@@ -52,13 +53,22 @@ export const App: React.FC = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>(() => storageService.getPlaylists());
   const [connections, setConnections] = useState<ServiceConnection>(() => storageService.getConnections());
   const [channels, setChannels] = useState<StreamChannel[]>(() => {
+    const custom = storageService.getCustomChannels();
     const cached = storageService.getSyncedChannels();
-    return STREAM_CHANNELS.map((ch) => {
+    const baseMerged = STREAM_CHANNELS.map((ch) => {
       if (cached[ch.id] && cached[ch.id].length > 0) {
         return { ...ch, tracks: cached[ch.id] };
       }
       return ch;
     });
+    const baseIds = new Set(baseMerged.map((c) => c.id));
+    const extraCustom = custom.filter((c) => !baseIds.has(c.id)).map((ch) => {
+      if (cached[ch.id] && cached[ch.id].length > 0) {
+        return { ...ch, tracks: cached[ch.id] };
+      }
+      return ch;
+    });
+    return [...extraCustom, ...baseMerged];
   });
 
   // State: Live Station Sync
@@ -352,38 +362,48 @@ export const App: React.FC = () => {
     return channels.find((c) => c.id === activeStationId);
   }, [channels, activeStationId]);
 
-  // Sync Station Tracks Live with YouTube
+  // Sync Station Tracks Live with YouTube or Spotify
   const handleSyncStation = async (channelId: string) => {
     const ch = channels.find((c) => c.id === channelId);
-    if (!ch || !ch.playlistId) return;
+    if (!ch) return;
 
+    const isSpotify = ch.channelType === 'spotify' || Boolean(ch.spotifyPlaylistId);
     setIsSyncingStation(true);
-    setStationSyncStatus('Checking YouTube for new tracks...');
+    setStationSyncStatus(`Checking ${isSpotify ? 'Spotify' : 'YouTube'} for updates...`);
 
     try {
-      const liveTracks = await youtubeService.syncPlaylistLive(ch.playlistId);
+      let liveTracks: Track[] = [];
+      if (isSpotify && ch.spotifyPlaylistId) {
+        liveTracks = await spotifyService.syncPlaylistLive(ch.spotifyPlaylistId);
+      } else if (ch.playlistId) {
+        liveTracks = await youtubeService.syncPlaylistLive(ch.playlistId);
+      }
+
       if (liveTracks.length > 0) {
-        const existingIds = new Set(ch.tracks.map((t) => t.youtubeId || t.id));
-        const newTracks = liveTracks.filter((t) => !existingIds.has(t.youtubeId || t.id));
+        const existingIds = new Set(ch.tracks.map((t) => t.spotifyUri || t.youtubeId || t.id));
+        const newTracks = liveTracks.filter((t) => !existingIds.has(t.spotifyUri || t.youtubeId || t.id));
 
         const updatedTracks = [...newTracks, ...ch.tracks];
         setChannels((prev) =>
           prev.map((c) => (c.id === channelId ? { ...c, tracks: updatedTracks, lastSynced: Date.now() } : c))
         );
         storageService.saveSyncedChannel(channelId, updatedTracks);
+        if (isSpotify) {
+          storageService.saveCustomChannel({ ...ch, tracks: updatedTracks, lastSynced: Date.now() });
+        }
 
         if (newTracks.length > 0) {
           setTracks((prev) => [...newTracks, ...prev]);
           setStationSyncStatus(`Synced! Added ${newTracks.length} new song${newTracks.length > 1 ? 's' : ''}`);
         } else {
-          setStationSyncStatus(`All ${updatedTracks.length} tracks are up to date with YouTube`);
+          setStationSyncStatus(`All ${updatedTracks.length} tracks are up to date`);
         }
       } else {
-        setStationSyncStatus('Station is up to date with YouTube');
+        setStationSyncStatus('Station is already up to date');
       }
     } catch (e) {
       console.warn('Sync failed:', e);
-      setStationSyncStatus('Could not sync with YouTube at this time');
+      setStationSyncStatus('Could not sync with streaming service at this time');
     } finally {
       setIsSyncingStation(false);
       setTimeout(() => setStationSyncStatus(null), 4000);
@@ -519,11 +539,11 @@ export const App: React.FC = () => {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-mono text-xs uppercase text-signal-green tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-signal-green animate-pulse" />
-                    Method 1 Live Channel
+                    {stationChannel.channelType === 'spotify' || stationChannel.spotifyPlaylistId ? 'Method 1 Spotify Bridge' : 'Method 1 Live Channel'}
                   </span>
-                  {stationChannel.playlistId && (
+                  {(stationChannel.playlistId || stationChannel.spotifyPlaylistId) && (
                     <span className="font-mono text-[10px] text-zinc-400 uppercase px-1.5 py-0.5 bg-white/5 rounded border border-white/10">
-                      YouTube Synced
+                      {stationChannel.channelType === 'spotify' || stationChannel.spotifyPlaylistId ? 'Spotify Connected' : 'YouTube Synced'}
                     </span>
                   )}
                 </div>
@@ -536,7 +556,11 @@ export const App: React.FC = () => {
                 <div className="flex items-center gap-3 mt-3 text-xs font-mono text-zinc-500">
                   <span>{stationChannel.tracks.length} Tracks Available</span>
                   <span>•</span>
-                  <span>Headless Zero-Bandwidth Stream</span>
+                  <span>
+                    {stationChannel.channelType === 'spotify' || stationChannel.spotifyPlaylistId
+                      ? 'Interactive Native Spotify Streaming'
+                      : 'Headless Zero-Bandwidth Stream'}
+                  </span>
                 </div>
               </div>
 
@@ -556,15 +580,21 @@ export const App: React.FC = () => {
                   <span>Play All Tracks</span>
                 </button>
 
-                {stationChannel.playlistId && (
+                {(stationChannel.playlistId || stationChannel.spotifyPlaylistId) && (
                   <button
                     onClick={() => handleSyncStation(stationChannel.id)}
                     disabled={isSyncingStation}
                     className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/15 text-white font-mono text-xs rounded flex items-center gap-2 transition-all disabled:opacity-50"
-                    title="Check YouTube for new songs and auto-sync them directly"
+                    title="Check playlist for newly added songs and auto-sync them directly"
                   >
-                    <RefreshCw size={13} className={`text-red-400 ${isSyncingStation ? 'animate-spin' : ''}`} />
-                    <span>{isSyncingStation ? 'Syncing...' : 'Sync from YouTube'}</span>
+                    <RefreshCw size={13} className={`${stationChannel.channelType === 'spotify' ? 'text-signal-green' : 'text-red-400'} ${isSyncingStation ? 'animate-spin' : ''}`} />
+                    <span>
+                      {isSyncingStation
+                        ? 'Syncing...'
+                        : stationChannel.channelType === 'spotify' || stationChannel.spotifyPlaylistId
+                        ? 'Sync from Spotify'
+                        : 'Sync from YouTube'}
+                    </span>
                   </button>
                 )}
 
@@ -579,6 +609,20 @@ export const App: React.FC = () => {
                     <ExternalLink size={14} />
                   </a>
                 )}
+
+                {stationChannel.spotifyPlaylistId && (
+                  <a
+                    href={`https://open.spotify.com/playlist/${stationChannel.spotifyPlaylistId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-400 hover:text-white rounded transition-colors flex items-center gap-1.5 text-xs font-mono"
+                    title="Open playlist in Spotify"
+                  >
+                    <Music2 size={13} className="text-signal-green" />
+                    <span>Open in Spotify</span>
+                    <ExternalLink size={12} />
+                  </a>
+                )}
               </div>
             </div>
 
@@ -587,6 +631,22 @@ export const App: React.FC = () => {
               <div className="mb-6 p-3 bg-white/5 border border-white/15 rounded flex items-center gap-2 text-xs font-mono text-zinc-300">
                 <CheckCircle2 size={15} className="text-signal-green shrink-0" />
                 <span>{stationSyncStatus}</span>
+              </div>
+            )}
+
+            {/* Embedded Native Spotify Player Widget */}
+            {stationChannel.spotifyEmbedUrl && (
+              <div className="mb-8 rounded-lg overflow-hidden border border-white/10 shadow-2xl bg-[#121212]">
+                <iframe
+                  src={stationChannel.spotifyEmbedUrl}
+                  width="100%"
+                  height="352"
+                  frameBorder="0"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  title={`Spotify Player: ${stationChannel.name}`}
+                  className="w-full"
+                />
               </div>
             )}
 
