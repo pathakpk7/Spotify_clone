@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, RefreshCw, ExternalLink, CheckCircle2, Music2 } from 'lucide-react';
+import { Play, RefreshCw, ExternalLink, CheckCircle2, Music2, Menu } from 'lucide-react';
 import { audioEngine } from './services/audioEngine';
 import { youtubePlayer } from './services/youtubePlayer';
 import { youtubeService } from './services/youtubeService';
@@ -23,11 +23,13 @@ import { QueueDrawer } from './components/queue/QueueDrawer';
 import { EditorialFooter } from './components/footer/EditorialFooter';
 import { AudioCutterModal } from './components/cutter/AudioCutterModal';
 import { CinematicLandingPortal } from './components/hero/CinematicLandingPortal';
+import { MobileBottomNav } from './components/navigation/MobileBottomNav';
 
 export const App: React.FC = () => {
   // State: Portal Landing Experience
   const [hasEnteredPortal, setHasEnteredPortal] = useState<boolean>(false);
   const [activeLoopRange, setActiveLoopRange] = useState<[number, number] | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
   // State: Tracks & Playback
   const [tracks, setTracks] = useState<Track[]>(INITIAL_TRACKS);
@@ -538,14 +540,23 @@ export const App: React.FC = () => {
         activeStationId={activeStationId}
         onSelectStation={setActiveStationId}
         onOpenPortal={() => setHasEnteredPortal(false)}
+        isMobileOpen={isMobileSidebarOpen}
+        onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
 
       {/* Main Content Area */}
-      <main className="flex-grow flex flex-col min-w-0 pb-32">
+      <main className="flex-grow flex flex-col min-w-0 pb-36 md:pb-32">
         {/* Top Header Bar */}
-        <header className="h-16 px-6 md:px-12 flex items-center justify-between border-b border-white/10 sticky top-0 bg-[#07080a]/85 backdrop-blur-md z-20">
+        <header className="h-16 px-4 md:px-12 flex items-center justify-between border-b border-white/10 sticky top-0 bg-[#07080a]/85 backdrop-blur-md z-20">
           <div className="flex items-center gap-3">
-            <span className="font-display font-bold text-sm tracking-tight text-white">
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="md:hidden p-2 -ml-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+              aria-label="Open Navigation Menu"
+            >
+              <Menu size={20} />
+            </button>
+            <span className="font-display font-bold text-sm sm:text-base tracking-tight text-white truncate max-w-[200px] sm:max-w-md">
               {activeStationId && stationChannel
                 ? stationChannel.name
                 : activePlaylistId
@@ -560,7 +571,7 @@ export const App: React.FC = () => {
             {isPlaying && (
               <div className="flex items-center gap-2 text-zinc-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-signal-green animate-pulse" />
-                <span>Playing</span>
+                <span className="hidden sm:inline">Playing</span>
               </div>
             )}
           </div>
@@ -919,6 +930,20 @@ export const App: React.FC = () => {
         onRemoveTrack={handleRemoveFromQueue}
         onClearQueue={handleClearQueue}
         onShuffleQueue={handleShuffleQueue}
+      />
+
+      {/* Mobile Bottom Navigation Bar (md:hidden) */}
+      <MobileBottomNav
+        activeView={activeView}
+        setActiveView={setActiveView}
+        activePlaylistId={activePlaylistId}
+        onSelectPlaylist={setActivePlaylistId}
+        activeStationId={activeStationId}
+        onSelectStation={setActiveStationId}
+        onOpenSearch={() => {
+          setIsMobileSidebarOpen(true);
+        }}
+        onOpenSidebar={() => setIsMobileSidebarOpen(true)}
       />
     </div>
   );

@@ -47,7 +47,7 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="absolute top-0 right-0 bottom-0 w-full max-w-md bg-[#111317] border-l border-white/10 shadow-2xl flex flex-col p-6 z-10"
+            className="absolute top-0 right-0 bottom-0 w-full max-w-md bg-[#111317] border-l border-white/10 shadow-2xl flex flex-col p-4 sm:p-6 z-10"
           >
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">

@@ -33,7 +33,7 @@ export const CinematicLandingPortal: React.FC<CinematicLandingPortalProps> = ({
       initial={{ opacity: 1 }}
       animate={{ opacity: isZooming ? 0 : 1 }}
       transition={{ duration: 0.9, delay: 0.1 }}
-      className="fixed inset-0 w-screen h-screen z-50 flex flex-col items-center justify-between px-6 sm:px-12 py-6 sm:py-10 overflow-hidden bg-[#040507] select-none"
+      className="fixed inset-0 w-full h-[100dvh] z-50 flex flex-col items-center justify-between px-4 sm:px-12 py-4 sm:py-10 overflow-hidden bg-[#040507] select-none"
     >
       {/* 1. Fluid Background Heartbeat Waveform */}
       <CardioWaveform isPlaying={isPlaying} />

@@ -316,7 +316,7 @@ export const ThreeHeadphoneCanvas: React.FC<ThreeHeadphoneCanvasProps> = ({
     <div
       ref={containerRef}
       onClick={onClick}
-      className={`relative w-full max-w-[500px] h-[460px] sm:h-[540px] flex items-center justify-center select-none ${
+      className={`relative w-full max-w-[320px] sm:max-w-[420px] md:max-w-[500px] h-[280px] sm:h-[400px] md:h-[480px] flex items-center justify-center select-none ${
         onClick ? 'cursor-pointer' : ''
       }`}
     />

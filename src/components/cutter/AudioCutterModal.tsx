@@ -226,7 +226,7 @@ export const AudioCutterModal: React.FC<AudioCutterModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-2xl bg-[#0e1014] border border-white/10 rounded-xl p-6 sm:p-8 shadow-2xl text-white relative overflow-hidden"
+            className="w-full max-w-2xl bg-[#0e1014] border border-white/10 rounded-xl p-4 sm:p-8 shadow-2xl text-white relative overflow-y-auto max-h-[92vh]"
           >
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">

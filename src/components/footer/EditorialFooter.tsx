@@ -2,7 +2,7 @@ import React from 'react';
 
 export const EditorialFooter: React.FC = () => {
   return (
-    <footer className="mt-12 px-6 sm:px-12 py-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-zinc-500">
+    <footer className="mt-12 px-4 sm:px-12 py-6 mb-8 md:mb-0 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-zinc-500">
       <div className="flex items-center gap-2">
         <span className="w-1.5 h-1.5 rounded-full bg-signal-green" />
         <span className="text-zinc-300 font-semibold">Pulse</span>

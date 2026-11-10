@@ -166,7 +166,7 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-xl bg-[#111317] border border-white/10 rounded-lg p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-xl bg-[#111317] border border-white/10 rounded-lg p-4 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto"
           >
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">

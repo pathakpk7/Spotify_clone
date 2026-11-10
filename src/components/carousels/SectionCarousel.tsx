@@ -43,7 +43,7 @@ export const SectionCarousel: React.FC<SectionCarouselProps> = ({
   if (!tracks || tracks.length === 0) return null;
 
   return (
-    <section className="px-8 md:px-12 py-10 border-b border-white/10">
+    <section className="px-4 md:px-12 py-6 md:py-10 border-b border-white/10">
       {/* Header */}
       <div className="flex items-end justify-between mb-6">
         <div>
@@ -87,7 +87,7 @@ export const SectionCarousel: React.FC<SectionCarouselProps> = ({
               key={track.id}
               whileHover={{ y: -4 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="flex-shrink-0 w-48 sm:w-52 flex flex-col group cursor-pointer"
+              className="flex-shrink-0 w-36 sm:w-48 sm:w-52 flex flex-col group cursor-pointer"
               onClick={() => onPlayTrack(track)}
             >
               {/* Image Thumbnail Container */}

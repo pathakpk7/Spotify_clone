@@ -16,7 +16,7 @@ export const RotatingHeadphone: React.FC<RotatingHeadphoneProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`relative w-full max-w-[480px] h-[460px] sm:h-[520px] flex items-center justify-center select-none ${
+      className={`relative w-full max-w-[320px] sm:max-w-[420px] md:max-w-[480px] h-[280px] sm:h-[400px] md:h-[480px] flex items-center justify-center select-none ${
         onClick ? 'cursor-pointer' : ''
       }`}
     >
@@ -31,7 +31,7 @@ export const RotatingHeadphone: React.FC<RotatingHeadphoneProps> = ({
           repeat: isZooming ? 0 : Infinity,
           ease: 'easeInOut'
         }}
-        className="absolute w-[360px] sm:w-[440px] h-[360px] sm:h-[440px] rounded-full pointer-events-none z-0"
+        className="absolute w-[240px] sm:w-[340px] md:w-[440px] h-[240px] sm:h-[340px] md:h-[440px] rounded-full pointer-events-none z-0"
         style={{
           background: 'radial-gradient(circle, rgba(255, 255, 255, 0.48) 0%, rgba(240, 245, 255, 0.2) 38%, rgba(255, 255, 255, 0.04) 62%, transparent 75%)',
           filter: 'blur(40px)'

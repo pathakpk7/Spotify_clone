@@ -82,21 +82,21 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 25 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-3xl h-[85vh] bg-[#0d0f13] border border-white/10 rounded-lg p-6 md:p-8 flex flex-col shadow-2xl relative overflow-hidden"
+            className="w-full max-w-3xl h-[90vh] bg-[#0d0f13] border border-white/10 rounded-lg p-4 sm:p-8 flex flex-col shadow-2xl relative overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-6 border-b border-white/10 z-10">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded bg-black flex items-center justify-center border border-white/10 text-signal-green">
+            <div className="flex items-center justify-between pb-4 sm:pb-6 border-b border-white/10 z-10 gap-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded bg-black flex items-center justify-center border border-white/10 text-signal-green shrink-0">
                   {currentTrack.art ? (
                     <img src={currentTrack.art} alt={currentTrack.title} className="w-full h-full object-cover rounded" />
                   ) : (
                     <Mic2 size={20} />
                   )}
                 </div>
-                <div>
-                  <h3 className="font-display font-bold text-xl text-white">{currentTrack.title}</h3>
-                  <p className="text-xs font-mono text-zinc-400">{currentTrack.artist} • Lyrics Studio</p>
+                <div className="min-w-0">
+                  <h3 className="font-display font-bold text-base sm:text-xl text-white truncate">{currentTrack.title}</h3>
+                  <p className="text-[11px] sm:text-xs font-mono text-zinc-400 truncate">{currentTrack.artist}</p>
                 </div>
               </div>
 

@@ -33,7 +33,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
   const isCurrentPlaying = isPlaying && currentTrack.id === featuredTrack.id;
 
   return (
-    <section className="relative min-h-[580px] lg:min-h-[640px] px-6 sm:px-12 py-12 flex items-center border-b border-white/10 overflow-hidden bg-[#07080a]">
+    <section className="relative min-h-0 lg:min-h-[600px] px-4 sm:px-12 py-8 sm:py-12 flex items-center border-b border-white/10 overflow-hidden bg-[#07080a]">
       {/* 1. Flowing Heartbeat String Waveform (Traverses behind the headphone) */}
       <CardioWaveform isPlaying={isPlaying} />
 
