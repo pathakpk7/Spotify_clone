@@ -19,7 +19,9 @@ import {
   Scissors,
   ChevronDown,
   ChevronUp,
-  Maximize2
+  Maximize2,
+  Headphones,
+  Share2
 } from 'lucide-react';
 import { Track, VisualizerMode } from '../../types/music';
 
@@ -48,6 +50,8 @@ interface PlayerBarProps {
   onOpenLyrics: () => void;
   onOpenQueue: () => void;
   onOpenCutter?: () => void;
+  onOpenSpatial?: () => void;
+  onOpenShare?: () => void;
   activeLoopRange?: [number, number] | null;
   onClearLoop?: () => void;
 }
@@ -77,6 +81,8 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
   onOpenLyrics,
   onOpenQueue,
   onOpenCutter,
+  onOpenSpatial,
+  onOpenShare,
   activeLoopRange,
   onClearLoop
 }) => {
@@ -343,6 +349,17 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
             </button>
           )}
 
+          {/* 8D Spatial & Acoustics Button */}
+          {onOpenSpatial && (
+            <button
+              onClick={onOpenSpatial}
+              className="p-2 text-zinc-400 hover:text-signal-green hover:bg-white/5 rounded transition-colors"
+              title="8D Spatial Audio & Room Acoustics"
+            >
+              <Headphones size={17} />
+            </button>
+          )}
+
           {/* EQ Modal Button */}
           <button
             onClick={onOpenEQ}
@@ -356,10 +373,21 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
           <button
             onClick={onOpenLyrics}
             className="p-2 text-zinc-400 hover:text-signal-green hover:bg-white/5 rounded transition-colors"
-            title="Synchronized Lyrics"
+            title="Synchronized Lyrics & Karaoke"
           >
             <Mic2 size={17} />
           </button>
+
+          {/* Share Card & Deep Link */}
+          {onOpenShare && (
+            <button
+              onClick={onOpenShare}
+              className="p-2 text-zinc-400 hover:text-signal-green hover:bg-white/5 rounded transition-colors"
+              title="Share Music Card & Direct Link"
+            >
+              <Share2 size={17} />
+            </button>
+          )}
 
           {/* Speed toggle */}
           <button
@@ -699,7 +727,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
               </div>
 
               {/* Mobile Accessories & Utility Icons Strip */}
-              <div className="grid grid-cols-5 gap-2 pt-2 border-t border-white/10 text-center">
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 pt-2 border-t border-white/10 text-center">
                 {/* 1. Equalizer */}
                 <button
                   onClick={() => {
@@ -712,7 +740,21 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
                   <span className="text-[10px] font-mono mt-1">EQ</span>
                 </button>
 
-                {/* 2. Lyrics */}
+                {/* 2. 8D Spatial Audio */}
+                {onOpenSpatial && (
+                  <button
+                    onClick={() => {
+                      setIsMobileExpanded(false);
+                      onOpenSpatial();
+                    }}
+                    className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition-colors"
+                  >
+                    <Headphones size={18} className="text-signal-green" />
+                    <span className="text-[10px] font-mono mt-1">8D Audio</span>
+                  </button>
+                )}
+
+                {/* 3. Lyrics */}
                 <button
                   onClick={() => {
                     setIsMobileExpanded(false);
@@ -724,7 +766,21 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
                   <span className="text-[10px] font-mono mt-1">Lyrics</span>
                 </button>
 
-                {/* 3. Audio Cutter */}
+                {/* 4. Share Card */}
+                {onOpenShare && (
+                  <button
+                    onClick={() => {
+                      setIsMobileExpanded(false);
+                      onOpenShare();
+                    }}
+                    className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition-colors"
+                  >
+                    <Share2 size={18} className="text-signal-green" />
+                    <span className="text-[10px] font-mono mt-1">Share</span>
+                  </button>
+                )}
+
+                {/* 5. Audio Cutter */}
                 {onOpenCutter && (
                   <button
                     onClick={() => {
@@ -742,7 +798,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
                   </button>
                 )}
 
-                {/* 4. Visualizer */}
+                {/* 6. Visualizer */}
                 <button
                   onClick={onCycleVisualizerMode}
                   className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition-colors"
@@ -751,7 +807,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({
                   <span className="text-[10px] font-mono mt-1 uppercase">{visualizerMode[0]}</span>
                 </button>
 
-                {/* 5. Speed */}
+                {/* 7. Speed */}
                 <button
                   onClick={onCyclePlaybackRate}
                   className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition-colors"

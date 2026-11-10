@@ -24,6 +24,9 @@ import { EditorialFooter } from './components/footer/EditorialFooter';
 import { AudioCutterModal } from './components/cutter/AudioCutterModal';
 import { CinematicLandingPortal } from './components/hero/CinematicLandingPortal';
 import { MobileBottomNav } from './components/navigation/MobileBottomNav';
+import { SpatialAudioModal } from './components/player/SpatialAudioModal';
+import { ShareCardModal } from './components/social/ShareCardModal';
+import { mediaSessionService } from './services/mediaSessionService';
 
 export const App: React.FC = () => {
   // State: Portal Landing Experience
@@ -57,6 +60,8 @@ export const App: React.FC = () => {
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState<boolean>(false);
   const [isQueueOpen, setIsQueueOpen] = useState<boolean>(false);
   const [isCutterOpen, setIsCutterOpen] = useState<boolean>(false);
+  const [isSpatialOpen, setIsSpatialOpen] = useState<boolean>(false);
+  const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
 
   // State: Persistent Data
   const [playlists, setPlaylists] = useState<Playlist[]>(() => storageService.getPlaylists());
@@ -332,6 +337,56 @@ export const App: React.FC = () => {
   const handleAddToQueue = (track: Track) => {
     setQueue((prev) => [...prev, track]);
   };
+
+  // Hardware Media Keys & Lock Screen Controls (MediaSession API)
+  useEffect(() => {
+    mediaSessionService.init({
+      onPlay: handleTogglePlay,
+      onPause: handleTogglePlay,
+      onPrev: handlePrev,
+      onNext: handleNext,
+      onSeek: handleSeek
+    });
+  }, [isPlaying, currentTrackIndex, queue.length]);
+
+  useEffect(() => {
+    mediaSessionService.updateMetadata(currentTrack);
+  }, [currentTrack]);
+
+  useEffect(() => {
+    mediaSessionService.updatePlaybackState(isPlaying);
+  }, [isPlaying]);
+
+  useEffect(() => {
+    mediaSessionService.updatePositionState(duration, currentTime, playbackRate);
+  }, [duration, currentTime, playbackRate]);
+
+  // Deep Link Parser (?yt=..., ?track=..., ?station=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ytId = params.get('yt');
+    const trackId = params.get('track');
+    const stationId = params.get('station');
+
+    if (stationId) {
+      setActiveStationId(stationId);
+      setActiveView('station');
+      setHasEnteredPortal(true);
+    } else if (ytId) {
+      youtubeService.fetchTrackFromLink(`https://www.youtube.com/watch?v=${ytId}`).then((t) => {
+        if (t) {
+          handlePlayTrack(t);
+          setHasEnteredPortal(true);
+        }
+      });
+    } else if (trackId) {
+      const found = tracks.find((tr) => tr.id === trackId);
+      if (found) {
+        handlePlayTrack(found);
+        setHasEnteredPortal(true);
+      }
+    }
+  }, []);
 
   const handleRemoveFromQueue = (index: number) => {
     setQueue((prev) => prev.filter((_, i) => i !== index));
@@ -861,8 +916,23 @@ export const App: React.FC = () => {
         onOpenLyrics={() => setIsLyricsOpen(true)}
         onOpenQueue={() => setIsQueueOpen(true)}
         onOpenCutter={() => setIsCutterOpen(true)}
+        onOpenSpatial={() => setIsSpatialOpen(true)}
+        onOpenShare={() => setIsShareOpen(true)}
         activeLoopRange={activeLoopRange}
         onClearLoop={() => setActiveLoopRange(null)}
+      />
+
+      {/* Spatial 8D & Acoustics Modal */}
+      <SpatialAudioModal
+        isOpen={isSpatialOpen}
+        onClose={() => setIsSpatialOpen(false)}
+      />
+
+      {/* Aesthetic Story & Music Share Modal */}
+      <ShareCardModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        currentTrack={currentTrack}
       />
 
       {/* Precision Audio Cutter & Loop Modal */}

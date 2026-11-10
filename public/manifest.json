@@ -1,0 +1,21 @@
+{
+  "short_name": "Pulse",
+  "name": "Pulse — Hi-Fi Audio Stream Engine",
+  "icons": [
+    {
+      "src": "/spotifyLog.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/spotifyLog.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#07080a",
+  "theme_color": "#07080a",
+  "display": "standalone",
+  "orientation": "portrait"
+}
