@@ -539,7 +539,6 @@ export const App: React.FC = () => {
         connections={connections}
         activeStationId={activeStationId}
         onSelectStation={setActiveStationId}
-        onOpenPortal={() => setHasEnteredPortal(false)}
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
