@@ -1,5 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, RefreshCw, ExternalLink, CheckCircle2, Music2, Menu } from 'lucide-react';
+import { 
+  Play, 
+  RefreshCw, 
+  ExternalLink, 
+  CheckCircle2, 
+  Music2, 
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Headphones,
+  Mic2,
+  Share2,
+  Download
+} from 'lucide-react';
 import { audioEngine } from './services/audioEngine';
 import { youtubePlayer } from './services/youtubePlayer';
 import { youtubeService } from './services/youtubeService';
@@ -12,6 +25,7 @@ import { Track, Playlist, VisualizerMode, ServiceConnection, LyricLine, StreamCh
 // Components
 import { Sidebar } from './components/sidebar/Sidebar';
 import { HeroShowcase } from './components/hero/HeroShowcase';
+import { StudioHub } from './components/studio/StudioHub';
 import { AudioVisualizer } from './components/visualizer/AudioVisualizer';
 import { SectionCarousel } from './components/carousels/SectionCarousel';
 import { PlayerBar } from './components/player/PlayerBar';
@@ -62,6 +76,18 @@ export const App: React.FC = () => {
   const [isCutterOpen, setIsCutterOpen] = useState<boolean>(false);
   const [isSpatialOpen, setIsSpatialOpen] = useState<boolean>(false);
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
+
+  // State: Studio & Platform Features
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('pulse_sidebar_collapsed') === 'true';
+    }
+    return false;
+  });
+  const [isSmartAutoplay, setIsSmartAutoplay] = useState<boolean>(true);
+  const [crossfadeDuration, setCrossfadeDuration] = useState<number>(3);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
 
   // State: Persistent Data
   const [playlists, setPlaylists] = useState<Playlist[]>(() => storageService.getPlaylists());
@@ -235,8 +261,41 @@ export const App: React.FC = () => {
     setCurrentTrackIndex(0);
   };
 
+  const handleToggleSidebarCollapse = () => {
+    const next = !isSidebarCollapsed;
+    setIsSidebarCollapsed(next);
+    localStorage.setItem('pulse_sidebar_collapsed', String(next));
+  };
+
+  const handlePromptInstall = async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice;
+      if (choice?.outcome === 'accepted') {
+        setDeferredInstallPrompt(null);
+      }
+    } else {
+      alert(
+        'To install Pulse Web App:\n\n' +
+        '• iPhone / iPad: Tap the Share button in Safari, then tap "Add to Home Screen".\n' +
+        '• Android / Chrome: Tap the top-right menu (⋮) and tap "Install app" or "Add to Home screen".\n' +
+        '• Mac / PC: Click the Install icon on the right side of your browser address bar.'
+      );
+    }
+  };
+
   const handleNext = () => {
     if (queue.length === 0) return;
+
+    // Smart Autoplay: if reaching queue tail, append fresh matching tracks
+    if (currentTrackIndex >= queue.length - 2 && isSmartAutoplay) {
+      const existingIds = new Set(queue.map((t) => t.id));
+      const candidates = channels.flatMap((c) => c.tracks).filter((t) => !existingIds.has(t.id));
+      if (candidates.length > 0) {
+        setQueue((prev) => [...prev, ...candidates.slice(0, 4)]);
+      }
+    }
+
     let nextIdx: number;
     if (isShuffled) {
       nextIdx = Math.floor(Math.random() * queue.length);
@@ -386,6 +445,17 @@ export const App: React.FC = () => {
         setHasEnteredPortal(true);
       }
     }
+  }, []);
+
+  // PWA Install Prompt Listener
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleRemoveFromQueue = (index: number) => {
@@ -578,7 +648,7 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Sidebar Navigation */}
+      {/* Sidebar Navigation (Collapsible on All Screens) */}
       <Sidebar
         channels={channels}
         activeView={activeView}
@@ -594,6 +664,12 @@ export const App: React.FC = () => {
         connections={connections}
         activeStationId={activeStationId}
         onSelectStation={setActiveStationId}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={handleToggleSidebarCollapse}
+        onOpenSpatial={() => setIsSpatialOpen(true)}
+        onOpenLyrics={() => setIsLyricsOpen(true)}
+        onOpenShare={() => setIsShareOpen(true)}
+        onPromptInstall={handlePromptInstall}
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
@@ -601,16 +677,25 @@ export const App: React.FC = () => {
       {/* Main Content Area */}
       <main className="flex-grow flex flex-col min-w-0 pb-36 md:pb-32">
         {/* Top Header Bar */}
-        <header className="h-16 px-4 md:px-12 flex items-center justify-between border-b border-white/10 sticky top-0 bg-[#07080a]/85 backdrop-blur-md z-20">
+        <header className="h-16 px-4 md:px-8 flex items-center justify-between border-b border-white/10 sticky top-0 bg-[#07080a]/90 backdrop-blur-md z-20">
           <div className="flex items-center gap-3">
+            {/* Universal Sidebar Collapse Toggle for ALL screens */}
             <button
-              onClick={() => setIsMobileSidebarOpen(true)}
-              className="md:hidden p-2 -ml-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
-              aria-label="Open Navigation Menu"
+              onClick={() => {
+                if (window.innerWidth < 768) {
+                  setIsMobileSidebarOpen(!isMobileSidebarOpen);
+                } else {
+                  handleToggleSidebarCollapse();
+                }
+              }}
+              className="p-2 -ml-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+              title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+              aria-label="Toggle Sidebar"
             >
-              <Menu size={20} />
+              {isSidebarCollapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
             </button>
-            <span className="font-display font-bold text-sm sm:text-base tracking-tight text-white truncate max-w-[200px] sm:max-w-md">
+
+            <span className="font-display font-bold text-sm sm:text-base tracking-tight text-white truncate max-w-[150px] sm:max-w-md">
               {activeStationId && stationChannel
                 ? stationChannel.name
                 : activePlaylistId
@@ -621,11 +706,48 @@ export const App: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-3 font-mono text-xs text-zinc-400">
+          {/* Quick Studio Access Actions in Top Header */}
+          <div className="flex items-center gap-2 font-mono text-xs text-zinc-400">
+            <button
+              onClick={() => setIsSpatialOpen(true)}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-colors"
+              title="8D Spatial Audio & Room Acoustics"
+            >
+              <Headphones size={13} className="text-signal-green" />
+              <span>8D Audio</span>
+            </button>
+
+            <button
+              onClick={() => setIsLyricsOpen(true)}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-colors"
+              title="Time-Synced Lyrics & Karaoke"
+            >
+              <Mic2 size={13} className="text-signal-green" />
+              <span>Lyrics</span>
+            </button>
+
+            <button
+              onClick={() => setIsShareOpen(true)}
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-colors"
+              title="Share Music Story Card"
+            >
+              <Share2 size={13} className="text-blue-400" />
+              <span className="hidden lg:inline">Share Card</span>
+            </button>
+
+            <button
+              onClick={handlePromptInstall}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-signal-green/10 hover:bg-signal-green hover:text-black border border-signal-green/30 text-signal-green font-semibold transition-all shadow-[0_0_12px_rgba(0,229,117,0.2)]"
+              title="Install Pulse Web App"
+            >
+              <Download size={13} />
+              <span className="hidden sm:inline">Install App</span>
+            </button>
+
             {isPlaying && (
-              <div className="flex items-center gap-2 text-zinc-400">
+              <div className="hidden lg:flex items-center gap-1.5 pl-2 border-l border-white/10 text-zinc-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-signal-green animate-pulse" />
-                <span className="hidden sm:inline">Playing</span>
+                <span>Playing</span>
               </div>
             )}
           </div>
@@ -644,6 +766,23 @@ export const App: React.FC = () => {
               onToggleLike={handleToggleLike}
               onOpenUpload={() => setIsUploadOpen(true)}
               onOpenCutter={() => setIsCutterOpen(true)}
+            />
+
+            {/* Studio Suite & Acoustics Enhancers Hub */}
+            <StudioHub
+              currentTrack={currentTrack}
+              isPlaying={isPlaying}
+              onOpenLyrics={() => setIsLyricsOpen(true)}
+              onOpenEQ={() => setIsEQOpen(true)}
+              onOpenShare={() => setIsShareOpen(true)}
+              isSmartAutoplay={isSmartAutoplay}
+              onToggleSmartAutoplay={() => setIsSmartAutoplay(!isSmartAutoplay)}
+              crossfadeDuration={crossfadeDuration}
+              onCrossfadeChange={(sec) => {
+                setCrossfadeDuration(sec);
+                audioEngine.setCrossfadeDuration(sec);
+              }}
+              onPromptInstall={handlePromptInstall}
             />
           </div>
         )}
@@ -887,7 +1026,13 @@ export const App: React.FC = () => {
         )}
 
         {/* Editorial Architecture Footer */}
-        <EditorialFooter />
+        <EditorialFooter
+          onOpenSpatial={() => setIsSpatialOpen(true)}
+          onOpenEQ={() => setIsEQOpen(true)}
+          onOpenLyrics={() => setIsLyricsOpen(true)}
+          onOpenCutter={() => setIsCutterOpen(true)}
+          onPromptInstall={handlePromptInstall}
+        />
       </main>
 
       {/* Hardware Player Bottom Bar */}

@@ -48,6 +48,9 @@ class AudioEngine {
   private vocalFilter2: BiquadFilterNode | null = null;
   private isKaraokeActive = false;
 
+  // DJ Crossfade (Gapless Transition)
+  private crossfadeDuration = 3; // Seconds (0 to 12)
+
   public onTimeUpdate?: (currentTime: number, duration: number) => void;
   public onStateChange?: (isPlaying: boolean) => void;
   public onEnded?: () => void;
@@ -376,6 +379,15 @@ class AudioEngine {
     return this.isKaraokeActive;
   }
 
+  // --- DJ Crossfade ---
+  public setCrossfadeDuration(seconds: number) {
+    this.crossfadeDuration = Math.max(0, Math.min(12, seconds));
+  }
+
+  public getCrossfadeDuration(): number {
+    return this.crossfadeDuration;
+  }
+
   // --- Playback & Core Methods ---
   public async play(src?: string) {
     this.initWebAudio();
@@ -387,6 +399,25 @@ class AudioEngine {
       try {
         const resolvedSrc = new URL(src, window.location.href).href;
         if (this.audio.src !== resolvedSrc) {
+          // If already playing and crossfade is on, fade out then in
+          if (this.isPlaying() && this.crossfadeDuration > 0 && this.gainNode && this.audioCtx) {
+            const halfFade = Math.min(1.5, this.crossfadeDuration / 2);
+            this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, this.audioCtx.currentTime);
+            this.gainNode.gain.linearRampToValueAtTime(0.01, this.audioCtx.currentTime + halfFade);
+            
+            setTimeout(() => {
+              this.audio.src = src;
+              this.audio.load();
+              this.audio.play().then(() => {
+                if (this.gainNode && this.audioCtx) {
+                  this.gainNode.gain.setValueAtTime(0.01, this.audioCtx.currentTime);
+                  this.gainNode.gain.linearRampToValueAtTime(1.0, this.audioCtx.currentTime + halfFade);
+                }
+              }).catch(() => {});
+            }, halfFade * 1000);
+            return;
+          }
+
           this.audio.src = src;
           this.audio.load();
         }
@@ -399,6 +430,9 @@ class AudioEngine {
     }
 
     try {
+      if (this.gainNode && this.audioCtx) {
+        this.gainNode.gain.setValueAtTime(1.0, this.audioCtx.currentTime);
+      }
       await this.audio.play();
       if (this.is8DActive) this.start8DLoop();
     } catch (err) {

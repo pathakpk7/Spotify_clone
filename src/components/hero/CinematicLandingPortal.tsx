@@ -66,32 +66,32 @@ export const CinematicLandingPortal: React.FC<CinematicLandingPortalProps> = ({
         {/* Left Side: Website Features */}
         <div className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-6 text-[11px] font-mono text-zinc-400 pointer-events-none">
           <div>
-            <div className="text-[10px] text-zinc-400 uppercase tracking-widest">Streaming</div>
-            <div className="text-white font-semibold">YouTube & Spotify Playlists</div>
+            <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Acoustic Space</div>
+            <div className="text-signal-green font-semibold">8D Spatial & Binaural Orbit</div>
           </div>
           <div>
-            <div className="text-[10px] text-zinc-400 uppercase tracking-widest">Audio Trimmer</div>
-            <div className="text-white font-semibold">Cut & Loop Any Song</div>
+            <div className="text-[10px] text-zinc-500 uppercase tracking-widest">DSP Convolver</div>
+            <div className="text-white font-semibold">Virtual Architectural Reverb</div>
           </div>
           <div>
-            <div className="text-[10px] text-zinc-400 uppercase tracking-widest">Studio Equalizer</div>
-            <div className="text-signal-green font-semibold">10-Band Parametric Curves</div>
+            <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Analog Color</div>
+            <div className="text-white font-semibold">Vintage Vinyl & Tape Warmth</div>
           </div>
         </div>
 
         {/* Right Side: Website Features */}
         <div className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-6 text-right text-[11px] font-mono text-zinc-400 pointer-events-none">
           <div>
-            <div className="text-[10px] text-zinc-400 uppercase tracking-widest">Visualizers</div>
-            <div className="text-white font-semibold">Real-Time Waveforms & Orbs</div>
+            <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Sing-Along</div>
+            <div className="text-signal-green font-semibold">Synced Lyrics & Karaoke Mode</div>
           </div>
           <div>
-            <div className="text-[10px] text-zinc-400 uppercase tracking-widest">Synchronized Lyrics</div>
-            <div className="text-white font-semibold">Live Timed Tracking</div>
+            <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Seamless Flow</div>
+            <div className="text-white font-semibold">DJ Crossfade & Smart Autoplay</div>
           </div>
           <div>
-            <div className="text-[10px] text-zinc-400 uppercase tracking-widest">Local & Cloud</div>
-            <div className="text-signal-green font-semibold">Local Audio & File Uploads</div>
+            <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Social & Mobile</div>
+            <div className="text-white font-semibold">PWA Install & 9:16 Story Cards</div>
           </div>
         </div>
 
